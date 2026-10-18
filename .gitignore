@@ -1,0 +1,33 @@
+# Local scratch, never shipped
+.research/
+
+# Shared base (packaging/gitignore.base)
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+.venv*/
+venv/
+
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+.DS_Store
+
+*.pem
+*.key
+*.p12
+*.p8
+
+*.deb
+*.rpm
+*.pkg
+*.tar
+*.tar.gz

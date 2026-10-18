@@ -1,0 +1,17 @@
+{
+  "files": {
+    ".editorconfig": "27f0a420340998f882c86c46436e722cf924be3d81e96d23ddca9a182f24175c",
+    ".github/PULL_REQUEST_TEMPLATE.md": "8582cf583c3af1f61aa9e2f5214616e66b151470a9b61e211f4b03d257b57da6",
+    "packaging/changelog-section.sh": "acacfbeca5807ef8e886e7692e5c75c5e60348e0d3f90303cf080eddef59b301",
+    "packaging/check-doc-links.py": "44c9b053672d2b2c73379205490ba9ff61f06b48c3acc85de9c1a2057d27038d",
+    "packaging/check-gitignore-base.py": "2a7a5e2f770d8879c43a32f8d9901eb54f0ebe6f3107a0b17318fed1b5563141",
+    "packaging/check-standard-sync.py": "80a42b514811cf69b9493ebee035a68199f0c117732be9d01457faccc48ef4f4",
+    "packaging/gitignore.base": "f87bec1f6d1ec56ea3678d45920689ac26c7c3a737316a22570121dadac9a9ac",
+    "packaging/next-version.sh": "56c3a240d250e26bc09c7b7a4af4f2946e5f3ec454d43bd438c046c6572f44f8",
+    "packaging/promote-changelog.sh": "c70413841343bad7417417ee6335e39edba4d4f809e334eec221534f7f64fe05",
+    "packaging/shellcheck-all.sh": "14c87d497082a8982044c61c09207845b010e8a5a6f5eecca657cc4c68677c5d"
+  },
+  "source_commit": "3bd62dc8cfa83c5631eea5d2340a3dfc2f250dee",
+  "source_repo": "SisyphusMD/project-standard",
+  "source_tag": "v0.1.28"
+}
