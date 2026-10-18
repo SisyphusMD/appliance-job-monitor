@@ -1,0 +1,234 @@
+blueprint:
+  name: Appliance job monitor
+  author: SisyphusMD
+  description: >-
+    Tracks a washer, dryer, dishwasher or similar appliance through its jobs from the power
+    reading of the smart plug it is connected to, and runs your actions when a job starts or
+    finishes.
+
+
+    The state is kept in an `input_select` helper you create, which must contain the state
+    labels below.
+  domain: automation
+  source_url: https://github.com/SisyphusMD/appliance-job-monitor/releases/latest/download/appliance-job-monitor.yaml
+  homeassistant:
+    min_version: 2024.10.0
+  input:
+    appliance:
+      name: Appliance
+      icon: mdi:washing-machine
+      input:
+        power_sensor:
+          name: Power sensor
+          description: The plug's power reading, in watts.
+          selector:
+            entity:
+              filter:
+                - domain: sensor
+                  device_class: power
+        state_select:
+          name: State helper
+          description: >-
+            The `input_select` that holds this appliance's state. Its options must include
+            every state label.
+          selector:
+            entity:
+              filter:
+                - domain: input_select
+    thresholds:
+      name: Thresholds and timing
+      icon: mdi:tune-variant
+      input:
+        start_threshold:
+          name: Start threshold
+          description: A job starts once power stays above this for the start delay.
+          default: 5
+          selector:
+            number:
+              min: 0
+              max: 5000
+              step: 0.1
+              unit_of_measurement: W
+              mode: box
+        finish_threshold:
+          name: Finish threshold
+          description: >-
+            A job finishes once power stays below this for the finish delay. Keep it below the
+            start threshold.
+          default: 3
+          selector:
+            number:
+              min: 0
+              max: 5000
+              step: 0.1
+              unit_of_measurement: W
+              mode: box
+        start_delay:
+          name: Start delay
+          description: How long power must stay above the start threshold.
+          default:
+            seconds: 0
+          selector:
+            duration: {}
+        finish_delay:
+          name: Finish delay
+          description: >-
+            How long power must stay below the finish threshold. Raise it for appliances that
+            pause during a cycle, such as a dishwasher drying.
+          default:
+            seconds: 10
+          selector:
+            duration: {}
+    labels:
+      name: State labels
+      icon: mdi:label-outline
+      collapsed: true
+      input:
+        label_running:
+          name: Running
+          default: job_ongoing
+          selector:
+            text: {}
+        label_completed:
+          name: Completed
+          default: job_completed
+          selector:
+            text: {}
+    actions:
+      name: Actions
+      icon: mdi:play-box-multiple-outline
+      collapsed: true
+      input:
+        on_job_started:
+          name: When a job starts
+          default: []
+          selector:
+            action: {}
+        on_job_completed:
+          name: When a job finishes
+          default: []
+          selector:
+            action: {}
+
+# Each run is a short reaction to one edge, guarded by the current state, so a queued run that has
+# gone stale does nothing. Queued rather than restart: a restart would cancel a user's action
+# midway whenever the next power reading arrived.
+mode: queued
+max: 10
+max_exceeded: silent
+
+variables:
+  power_sensor: !input power_sensor
+  start_threshold: !input start_threshold
+  finish_threshold: !input finish_threshold
+
+triggers:
+  - trigger: numeric_state
+    entity_id: !input power_sensor
+    above: !input start_threshold
+    for: !input start_delay
+    id: power_high
+  - trigger: numeric_state
+    entity_id: !input power_sensor
+    below: !input finish_threshold
+    for: !input finish_delay
+    id: power_low
+  # numeric_state fires only on a crossing, and a pending `for:` is dropped when triggers are
+  # re-attached, so a reading already past a threshold at startup or reload would otherwise sit
+  # unnoticed until the next crossing.
+  - trigger: homeassistant
+    event: start
+    id: recheck
+  - trigger: event
+    event_type: automation_reloaded
+    id: recheck
+  # Turning the automation back on, or saving an edit to it, re-attaches its triggers while it
+  # still reads off or unavailable, so this one fires when it switches on just after. A YAML
+  # automation without an id has no state at that point, which is why the reload event stays.
+  - trigger: template
+    value_template: "{{ this is not none and is_state(this.entity_id, 'on') }}"
+    id: recheck
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: power_high
+          - condition: not
+            conditions:
+              - condition: state
+                entity_id: !input state_select
+                state: !input label_running
+        sequence:
+          - action: input_select.select_option
+            target:
+              entity_id: !input state_select
+            data:
+              option: !input label_running
+          # After the state write, so an action that fails cannot leave the state behind.
+          - sequence: !input on_job_started
+      - conditions:
+          - condition: trigger
+            id: power_low
+          - condition: state
+            entity_id: !input state_select
+            state: !input label_running
+        sequence:
+          - action: input_select.select_option
+            target:
+              entity_id: !input state_select
+            data:
+              option: !input label_completed
+          - sequence: !input on_job_completed
+      # The same two transitions, re-derived from the current reading. Each waits out its delay
+      # and gives up the moment the reading stops passing its threshold, including landing exactly
+      # on it or going unavailable, so it is as strict as the trigger it stands in for. A crossing
+      # that arrives during the wait queues behind this run and then finds the state settled.
+      - conditions:
+          - condition: trigger
+            id: recheck
+          - condition: not
+            conditions:
+              - condition: state
+                entity_id: !input state_select
+                state: !input label_running
+          - condition: numeric_state
+            entity_id: !input power_sensor
+            above: !input start_threshold
+        sequence:
+          - wait_template: >-
+              {{ not (states(power_sensor) | is_number
+                      and states(power_sensor) | float > start_threshold) }}
+            timeout: !input start_delay
+          - condition: numeric_state
+            entity_id: !input power_sensor
+            above: !input start_threshold
+          - action: input_select.select_option
+            target:
+              entity_id: !input state_select
+            data:
+              option: !input label_running
+          - sequence: !input on_job_started
+      - conditions:
+          - condition: trigger
+            id: recheck
+          - condition: state
+            entity_id: !input state_select
+            state: !input label_running
+          - condition: numeric_state
+            entity_id: !input power_sensor
+            below: !input finish_threshold
+        sequence:
+          - wait_template: >-
+              {{ not (states(power_sensor) | is_number
+                      and states(power_sensor) | float < finish_threshold) }}
+            timeout: !input finish_delay
+          - condition: numeric_state
+            entity_id: !input power_sensor
+            below: !input finish_threshold
+          - action: input_select.select_option
+            target:
+              entity_id: !input state_select
+            data:
+              option: !input label_completed
+          - sequence: !input on_job_completed

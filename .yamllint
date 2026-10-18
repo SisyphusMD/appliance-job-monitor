@@ -1,0 +1,10 @@
+extends: default
+
+ignore-from-file: .gitignore
+
+rules:
+  # Home Assistant YAML conventionally starts without a document marker.
+  document-start: disable
+  # The blueprint's release URL is one unbreakable token.
+  line-length:
+    max: 120
