@@ -198,6 +198,43 @@ variables:
   overload_sensor: !input overload_sensor
   start_threshold: !input start_threshold
   finish_threshold: !input finish_threshold
+  state_select: !input state_select
+  labels:
+    Idle: !input label_idle
+    Running: !input label_running
+    Paused: !input label_paused
+    Completed: !input label_completed
+    Unplugged: !input label_unplugged
+    Cut off by overload: !input label_overload
+  # Only the labels this configuration can reach have to be options of the helper, so an
+  # appliance without a plug switch or overload sensor needs no options for those states.
+  problems: >-
+    {% set used = ['Running', 'Completed']
+       + (['Paused'] if plug_switch is string else [])
+       + (['Idle', 'Unplugged'] if plug_switch is string or overload_sensor is string else [])
+       + (['Cut off by overload'] if overload_sensor is string else []) %}
+    {% set options = state_attr(state_select, 'options') %}
+    {% set ns = namespace(out=[], chosen=[]) %}
+    {% for name in used %}
+      {% set ns.chosen = ns.chosen + [labels[name]] %}
+    {% endfor %}
+    {% if options is none %}
+      {% set ns.out = ns.out + ['The state helper ' ~ state_select ~ ' was not found.'] %}
+    {% else %}
+      {% for name in used if labels[name] not in options %}
+        {% set ns.out = ns.out + ['The ' ~ name ~ ' label "' ~ labels[name] ~ '" is not an option of '
+                                  ~ state_select ~ '.'] %}
+      {% endfor %}
+    {% endif %}
+    {% if ns.chosen | unique(case_sensitive=true) | list | count < ns.chosen | count %}
+      {% set ns.out = ns.out + ['Each state label must be different.'] %}
+    {% endif %}
+    {% if finish_threshold >= start_threshold %}
+      {% set ns.out = ns.out + ['The finish threshold (' ~ finish_threshold ~ ' W) must be below the start threshold ('
+                                ~ start_threshold ~ ' W).'] %}
+    {% endif %}
+    {{ ns.out }}
+  notification_id: "appliance_job_monitor_{{ this.entity_id if this else 'unknown' }}"
 
 triggers:
   - trigger: numeric_state
@@ -252,8 +289,36 @@ triggers:
   - trigger: template
     value_template: "{{ this is not none and is_state(this.entity_id, 'on') }}"
     id: recheck
+  # Editing the helper's options can make a configuration valid or invalid.
+  - trigger: state
+    entity_id: !input state_select
+    attribute: options
+    id: recheck
 
 actions:
+  # A broken configuration writes nothing. It is reported once per re-check rather than on every
+  # power reading, so dismissing the notification is not undone until something changes.
+  - if:
+      - condition: template
+        value_template: "{{ problems | count > 0 }}"
+    then:
+      - if:
+          - condition: trigger
+            id: recheck
+        then:
+          - action: persistent_notification.create
+            data:
+              notification_id: "{{ notification_id }}"
+              title: "{{ this.attributes.friendly_name if this else 'Appliance job monitor' }} is not running"
+              message: "{{ problems | join('\n\n') }}"
+      - stop: Invalid configuration
+  - if:
+      - condition: trigger
+        id: recheck
+    then:
+      - action: persistent_notification.dismiss
+        data:
+          notification_id: "{{ notification_id }}"
   - choose:
       - conditions:
           - condition: trigger

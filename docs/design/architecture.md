@@ -31,3 +31,11 @@ The automation runs in `queued` mode, so a user's slow action is never cancelled
 reading, and triggers that fire meanwhile are applied afterwards in the order they fired. No run
 waits through a change that a queued trigger could act on: every wait ends on such a change and
 leaves it to that trigger's own run.
+
+## Configuration check
+
+Each run first checks that every state label the configuration can reach is an option of the
+helper, that those labels are distinct, and that the finish threshold is below the start threshold.
+A configuration that fails writes nothing. The problem is shown as a persistent notification at
+startup, on reload, when the automation is switched on or when the helper's options change, and is
+cleared once the check passes.

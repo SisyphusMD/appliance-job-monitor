@@ -127,6 +127,8 @@ def monitor(hass: HomeAssistant) -> Monitor:
         *, labels: list[str] | None = None, initial: str = "idle", power: float = 0, **inputs: Any
     ) -> dict[str, list[ServiceCall]]:
         options = labels or DEFAULT_LABELS
+        # A core integration that Home Assistant always loads; the test harness does not.
+        assert await async_setup_component(hass, "persistent_notification", {})
         assert await async_setup_component(
             hass,
             "input_select",
