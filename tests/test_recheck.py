@@ -14,12 +14,12 @@ from homeassistant.core import CoreState, HomeAssistant
 
 from .conftest import (
     AUTOMATION,
-    HOOKS,
     OMIT,
     PLUG,
     Advance,
     Monitor,
     automation_config,
+    fired,
     set_plug,
     set_power,
     settle,
@@ -196,13 +196,6 @@ async def test_a_sensor_that_comes_online_mid_job_is_tracked_without_a_recheck(
     assert state(hass) == "job_completed"
     assert len(calls["on_job_started"]) == 1
     assert len(calls["on_job_completed"]) == 1
-
-
-def fired(calls: dict, **expected: int) -> None:
-    """Assert how often each hook ran; every hook not named must not have run."""
-    assert {hook: len(calls[f"on_{hook}"]) for hook in HOOKS} == {
-        hook: expected.get(hook, 0) for hook in HOOKS
-    }
 
 
 @pytest.mark.parametrize(
@@ -394,3 +387,28 @@ async def test_switching_off_during_a_resume_at_startup_keeps_the_job_paused(
 
     assert state(hass) == "paused"
     fired(calls)
+
+
+async def test_a_short_burst_of_power_during_the_startup_grace_does_not_cancel_it(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance
+) -> None:
+    set_plug(hass, "on")
+    calls = await boot(
+        hass,
+        monitor,
+        plug_switch=PLUG,
+        initial="paused",
+        power=0,
+        start_delay={"seconds": 30},
+        resume_grace={"seconds": 120},
+    )
+    await advance(20)
+    set_power(hass, 50)
+    await advance(10)
+    set_power(hass, 0)
+    await advance(85)
+    assert state(hass) == "paused"
+
+    await advance(10)
+    assert state(hass) == "idle"
+    fired(calls, abandoned=1)

@@ -136,10 +136,10 @@ async def test_a_failing_action_cannot_leave_the_state_behind(
     assert state(hass) == "job_ongoing"
 
 
-async def test_a_reading_that_passed_while_an_action_ran_is_not_acted_on_later(
+async def test_triggers_that_fire_during_a_slow_action_apply_afterwards_in_order(
     hass: HomeAssistant, monitor: Monitor, advance: Advance
 ) -> None:
-    """Runs queue, so a slow action holds back triggers that fired meanwhile."""
+    """Runs queue, so a slow action delays the transitions behind it without changing them."""
     calls = await monitor(
         initial="job_ongoing",
         power=50,
@@ -150,11 +150,13 @@ async def test_a_reading_that_passed_while_an_action_ran_is_not_acted_on_later(
     set_power(hass, 50)
     await advance(5)
     set_power(hass, 0.5)
-    await advance(30)
-
-    assert state(hass) == "job_completed"
+    await advance(25)
+    assert len(calls["on_job_started"]) == 1, "the short job seen during the action was dropped"
     assert len(calls["on_job_completed"]) == 1
-    assert not calls["on_job_started"], "a spike that had already passed started a job"
+
+    await advance(40)
+    assert state(hass) == "job_completed"
+    assert len(calls["on_job_completed"]) == 2
 
 
 async def test_only_the_two_required_inputs_are_needed(

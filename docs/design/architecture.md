@@ -21,3 +21,13 @@ reload, so a reconcile step re-derives the state from current readings at startu
 `paused` and `detached_overload` always mean a job was running and was interrupted; `unplugged`
 always means no job was running when power was cut. A paused job that does not draw power again
 within the resume grace period ends as `idle`, and is never reported as finished.
+A job cut off by an overload stays `detached_overload` through any switching of the plug. Either
+kind of interruption is abandoned once the plug has been back on, and any overload clear, for the
+whole grace period, counted from whichever came last.
+
+## Queued runs
+
+The automation runs in `queued` mode, so a user's slow action is never cancelled by the next power
+reading, and triggers that fire meanwhile are applied afterwards in the order they fired. No run
+waits through a change that a queued trigger could act on: every wait ends on such a change and
+leaves it to that trigger's own run.

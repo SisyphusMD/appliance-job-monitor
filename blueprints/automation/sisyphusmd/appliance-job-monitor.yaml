@@ -45,6 +45,16 @@ blueprint:
             entity:
               filter:
                 - domain: switch
+        overload_sensor:
+          name: Overload sensor
+          description: >-
+            Optional. A binary sensor that turns on when the plug trips on overload, so the job
+            is marked as cut off by the trip.
+          default: []
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
     thresholds:
       name: Thresholds and timing
       icon: mdi:tune-variant
@@ -92,8 +102,8 @@ blueprint:
         resume_grace:
           name: Resume grace
           description: >-
-            After the plug is switched back on, how long a paused job has to draw power again
-            before it is given up as abandoned.
+            After the plug is switched back on or an overload clears, how long an interrupted job
+            has to draw power again before it is given up as abandoned.
           default:
             minutes: 5
           selector:
@@ -126,6 +136,11 @@ blueprint:
         label_unplugged:
           name: Unplugged
           default: unplugged
+          selector:
+            text: {}
+        label_overload:
+          name: Cut off by overload
+          default: detached_overload
           selector:
             text: {}
     actions:
@@ -163,11 +178,16 @@ blueprint:
           default: []
           selector:
             action: {}
+        on_overload:
+          name: When an overload cuts off a job
+          default: []
+          selector:
+            action: {}
 
 # Queued rather than restart: a restart would cancel a user's action midway whenever the next power
-# reading arrived. A trigger can therefore wait behind a slow action or a re-check, so triggers that
-# claim something lasted (power high, power low, the plug on for the grace period) check it still
-# holds when their run starts. Switch edges replay in order, since they record what happened.
+# reading arrived. Runs apply triggers in the order they fired, so a slow action delays later
+# transitions without changing them. That holds because no run waits through a change a queued
+# trigger could act on: every wait below ends on one, then leaves it to that trigger's own run.
 mode: queued
 max: 10
 max_exceeded: silent
@@ -175,6 +195,7 @@ max_exceeded: silent
 variables:
   power_sensor: !input power_sensor
   plug_switch: !input plug_switch
+  overload_sensor: !input overload_sensor
   start_threshold: !input start_threshold
   finish_threshold: !input finish_threshold
 
@@ -189,7 +210,7 @@ triggers:
     below: !input finish_threshold
     for: !input finish_delay
     id: power_low
-  # Without a plug switch these watch no entity and never fire.
+  # Without a plug switch or overload sensor these watch no entity and never fire.
   - trigger: state
     entity_id: !input plug_switch
     to: "off"
@@ -203,6 +224,19 @@ triggers:
     to: "on"
     for: !input resume_grace
     id: plug_on_quiet
+  - trigger: state
+    entity_id: !input overload_sensor
+    to: "on"
+    id: overload_on
+  - trigger: state
+    entity_id: !input overload_sensor
+    to: "off"
+    id: overload_off
+  - trigger: state
+    entity_id: !input overload_sensor
+    to: "off"
+    for: !input resume_grace
+    id: overload_off_quiet
   # numeric_state fires only on a crossing, and a pending `for:` is dropped when triggers are
   # re-attached, so a reading already past a threshold at startup or reload would otherwise sit
   # unnoticed until the next crossing.
@@ -224,13 +258,12 @@ actions:
       - conditions:
           - condition: trigger
             id: power_high
-          - condition: numeric_state
-            entity_id: !input power_sensor
-            above: !input start_threshold
           - condition: state
             entity_id: !input state_select
-            state: !input label_paused
-        sequence:
+            state: &interrupted
+              - !input label_paused
+              - !input label_overload
+        sequence: &resume
           - action: input_select.select_option
             target:
               entity_id: !input state_select
@@ -240,9 +273,6 @@ actions:
       - conditions:
           - condition: trigger
             id: power_high
-          - condition: numeric_state
-            entity_id: !input power_sensor
-            above: !input start_threshold
           - condition: not
             conditions:
               - condition: state
@@ -261,9 +291,6 @@ actions:
       - conditions:
           - condition: trigger
             id: power_low
-          - condition: numeric_state
-            entity_id: !input power_sensor
-            below: !input finish_threshold
           - condition: state
             entity_id: !input state_select
             state: !input label_running
@@ -308,23 +335,33 @@ actions:
           - condition: state
             entity_id: !input state_select
             state: !input label_unplugged
+          - condition: template
+            value_template: "{{ not (overload_sensor is string and is_state(overload_sensor, 'on')) }}"
         sequence: &replug
           - action: input_select.select_option
             target:
               entity_id: !input state_select
             data:
               option: !input label_idle
-      # A paused job resumes through power_high. One still paused once the plug has been back on
-      # for the whole grace period did not finish, so it is never reported as completed.
+      # An interrupted job resumes through power_high. One still interrupted once the plug has been
+      # back on and any overload clear for the whole grace period did not finish, so it is never
+      # reported as completed. Whichever of the two came last ends the grace; an entity that is not
+      # configured passes its check.
       - conditions:
           - condition: trigger
-            id: plug_on_quiet
+            id:
+              - plug_on_quiet
+              - overload_off_quiet
           - condition: state
             entity_id: !input state_select
-            state: !input label_paused
+            state: *interrupted
           - condition: state
             entity_id: !input plug_switch
             state: "on"
+            for: !input resume_grace
+          - condition: state
+            entity_id: !input overload_sensor
+            state: "off"
             for: !input resume_grace
         sequence: &abandon
           - action: input_select.select_option
@@ -333,16 +370,107 @@ actions:
             data:
               option: !input label_idle
           - sequence: !input on_abandoned
-      # The transitions above, re-derived from the current readings. A plug switch read as off
-      # wins, as its own trigger would have. Each wait gives up the moment the reading stops
-      # passing its threshold, including landing exactly on it or going unavailable, so it is as
-      # strict as the `for:` it stands in for, and the moment the plug is switched off, so that
-      # edge is applied in order after this run.
+      # An overload outranks the plug switch: a job cut off by a trip stays in that state through
+      # any switching until it resumes or is abandoned.
+      - conditions:
+          - condition: trigger
+            id: overload_on
+          - condition: state
+            entity_id: !input state_select
+            state:
+              - !input label_running
+              - !input label_paused
+        sequence: &trip
+          - action: input_select.select_option
+            target:
+              entity_id: !input state_select
+            data:
+              option: !input label_overload
+          - sequence: !input on_overload
+      - conditions:
+          - condition: trigger
+            id: overload_on
+          - condition: state
+            entity_id: !input state_select
+            state:
+              - !input label_idle
+              - !input label_completed
+        sequence: *unplug
+      # Power that never stopped, from an overload sensor that does not cut the plug, crosses no
+      # threshold for power_high to see, so it is checked here.
+      - conditions:
+          - condition: trigger
+            id: overload_off
+          - condition: state
+            entity_id: !input state_select
+            state: !input label_overload
+          - condition: numeric_state
+            entity_id: !input power_sensor
+            above: !input start_threshold
+        sequence:
+          - wait_template: &start_broken >-
+              {{ (plug_switch is string and is_state(plug_switch, 'off'))
+                 or (overload_sensor is string and is_state(overload_sensor, 'on'))
+                 or not (states(power_sensor) | is_number
+                         and states(power_sensor) | float > start_threshold) }}
+            timeout: !input start_delay
+          - condition: template
+            value_template: &start_held "{{ not wait.completed }}"
+          - sequence: *resume
+      - conditions:
+          - condition: trigger
+            id: overload_off
+          - condition: state
+            entity_id: !input state_select
+            state: !input label_unplugged
+          - condition: template
+            value_template: "{{ not (plug_switch is string and is_state(plug_switch, 'off')) }}"
+        sequence:
+          - sequence: *replug
+          - condition: numeric_state
+            entity_id: !input power_sensor
+            above: !input start_threshold
+          - wait_template: *start_broken
+            timeout: !input start_delay
+          - condition: template
+            value_template: *start_held
+          - action: input_select.select_option
+            target:
+              entity_id: !input state_select
+            data:
+              option: !input label_running
+          - sequence: !input on_job_started
+      # The transitions above, re-derived from the current readings. An overload or a plug switch
+      # read as off wins, as its own trigger would have, in that order. Each wait gives up the
+      # moment the reading stops passing its threshold, including landing exactly on it or going
+      # unavailable, so it is as strict as the `for:` it stands in for, and the moment the plug is
+      # switched off or trips, so that edge is applied in order after this run.
       - conditions:
           - condition: trigger
             id: recheck
           - condition: template
-            value_template: "{{ plug_switch is string and is_state(plug_switch, 'off') }}"
+            value_template: &tripped "{{ overload_sensor is string and is_state(overload_sensor, 'on') }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: state
+                    entity_id: !input state_select
+                    state:
+                      - !input label_running
+                      - !input label_paused
+                sequence: *trip
+              - conditions:
+                  - condition: state
+                    entity_id: !input state_select
+                    state:
+                      - !input label_idle
+                      - !input label_completed
+                sequence: *unplug
+      - conditions:
+          - condition: trigger
+            id: recheck
+          - condition: template
+            value_template: &plug_is_off "{{ plug_switch is string and is_state(plug_switch, 'off') }}"
         sequence:
           - choose:
               - conditions:
@@ -367,17 +495,15 @@ actions:
                 state:
                   - !input label_running
                   - !input label_paused
+                  - !input label_overload
           - condition: numeric_state
             entity_id: !input power_sensor
             above: !input start_threshold
         sequence:
-          - wait_template: &start_broken >-
-              {{ (plug_switch is string and is_state(plug_switch, 'off'))
-                 or not (states(power_sensor) | is_number
-                         and states(power_sensor) | float > start_threshold) }}
+          - wait_template: *start_broken
             timeout: !input start_delay
           - condition: template
-            value_template: &start_held "{{ not wait.completed }}"
+            value_template: *start_held
           - action: input_select.select_option
             target:
               entity_id: !input state_select
@@ -396,6 +522,7 @@ actions:
         sequence:
           - wait_template: >-
               {{ (plug_switch is string and is_state(plug_switch, 'off'))
+                 or (overload_sensor is string and is_state(overload_sensor, 'on'))
                  or not (states(power_sensor) | is_number
                          and states(power_sensor) | float < finish_threshold) }}
             timeout: !input finish_delay
@@ -414,14 +541,15 @@ actions:
             entity_id: !input state_select
             state: !input label_unplugged
         sequence: *replug
-      # How long the plug has already been on is unknown here, so the paused job gets a full
-      # grace period from now, after any resume already under way has had its start delay.
+      # How long the plug has already been on, or the overload clear, is unknown here, so the
+      # interrupted job gets a full grace period from now, after any resume already under way has
+      # had its start delay.
       - conditions:
           - condition: trigger
             id: recheck
           - condition: state
             entity_id: !input state_select
-            state: !input label_paused
+            state: *interrupted
         sequence:
           - if:
               - condition: numeric_state
@@ -434,19 +562,20 @@ actions:
                   - condition: template
                     value_template: *start_held
                 then:
-                  - action: input_select.select_option
-                    target:
-                      entity_id: !input state_select
-                    data:
-                      option: !input label_running
-                  - sequence: !input on_job_resumed
+                  - sequence: *resume
                   - stop: Resumed
               # A condition here would end only this branch of the `if`, not the run.
               - if:
-                  - condition: template
-                    value_template: "{{ plug_switch is string and is_state(plug_switch, 'off') }}"
+                  - condition: or
+                    conditions:
+                      - condition: template
+                        value_template: *plug_is_off
+                      - condition: template
+                        value_template: *tripped
                 then:
-                  - stop: Switched off
+                  - stop: Interrupted again
+          # Each of these also fires a trigger of this automation, whose run queued behind this
+          # one applies it, so this run only has to stop waiting.
           - wait_for_trigger:
               - trigger: numeric_state
                 entity_id: !input power_sensor
@@ -455,20 +584,11 @@ actions:
               - trigger: state
                 entity_id: !input plug_switch
                 to: "off"
+              - trigger: state
+                entity_id: !input overload_sensor
+                to: "on"
             timeout: !input resume_grace
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ wait.trigger is none }}"
-                sequence: *abandon
-              - conditions:
-                  - condition: numeric_state
-                    entity_id: !input power_sensor
-                    above: !input start_threshold
-                sequence:
-                  - action: input_select.select_option
-                    target:
-                      entity_id: !input state_select
-                    data:
-                      option: !input label_running
-                  - sequence: !input on_job_resumed
+          - if:
+              - condition: template
+                value_template: "{{ wait.trigger is none }}"
+            then: *abandon

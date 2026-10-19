@@ -29,10 +29,11 @@ BLUEPRINT_PATH = "sisyphusmd/appliance-job-monitor.yaml"
 POWER = "sensor.washer_power"
 SELECT = "input_select.washer_state"
 PLUG = "switch.washer_plug"
+OVERLOAD = "binary_sensor.washer_plug_overload"
 AUTOMATION = "automation.washer_monitor"
 # Passed as an input value to leave that input out entirely, so a default would apply.
 OMIT = object()
-HOOKS = ["job_started", "job_resumed", "job_completed", "paused", "abandoned", "unplugged"]
+HOOKS = ["job_started", "job_resumed", "job_completed", "paused", "abandoned", "unplugged", "overload"]
 DEFAULT_LABELS = ["idle", "job_ongoing", "paused", "job_completed", "unplugged", "detached_overload"]
 
 
@@ -53,6 +54,17 @@ def set_power(hass: HomeAssistant, watts: float | str, **attributes: Any) -> Non
 
 def set_plug(hass: HomeAssistant, state: str) -> None:
     hass.states.async_set(PLUG, state)
+
+
+def set_overload(hass: HomeAssistant, state: str) -> None:
+    hass.states.async_set(OVERLOAD, state)
+
+
+def fired(calls: dict[str, list[ServiceCall]], **expected: int) -> None:
+    """Assert how often each hook ran; every hook not named must not have run."""
+    assert {hook: len(calls[f"on_{hook}"]) for hook in HOOKS} == {
+        hook: expected.get(hook, 0) for hook in HOOKS
+    }
 
 
 Advance = Callable[[float], Awaitable[None]]

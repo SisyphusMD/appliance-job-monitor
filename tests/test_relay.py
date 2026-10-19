@@ -5,14 +5,7 @@ from __future__ import annotations
 import pytest
 from homeassistant.core import HomeAssistant
 
-from .conftest import HOOKS, PLUG, Advance, Monitor, set_plug, set_power, state
-
-
-def fired(calls: dict, **expected: int) -> None:
-    """Assert how often each hook ran; every hook not named must not have run."""
-    assert {hook: len(calls[f"on_{hook}"]) for hook in HOOKS} == {
-        hook: expected.get(hook, 0) for hook in HOOKS
-    }
+from .conftest import PLUG, Advance, Monitor, fired, set_plug, set_power, state
 
 
 async def relay_monitor(monitor: Monitor, **kwargs: object) -> dict:
@@ -201,9 +194,10 @@ async def test_custom_labels_cover_the_relay_states(
     assert state(hass) == "Off"
 
 
-async def test_a_grace_that_ran_out_behind_a_slow_action_does_not_abandon_a_switched_off_job(
+async def test_a_resume_and_a_second_switch_off_during_a_slow_action_apply_in_order(
     hass: HomeAssistant, monitor: Monitor, advance: Advance
 ) -> None:
+    """The grace period running out while queued must not abandon a job that had resumed."""
     calls = await relay_monitor(
         monitor,
         initial="job_ongoing",
@@ -215,9 +209,13 @@ async def test_a_grace_that_ran_out_behind_a_slow_action_does_not_abandon_a_swit
     set_power(hass, 0)
     await advance(10)
     set_plug(hass, "on")
-    await advance(190)
+    await advance(10)
+    set_power(hass, 50)
+    await advance(180)
     set_plug(hass, "off")
+    set_power(hass, 0)
+    await advance(600)
     await advance(600)
 
     assert state(hass) == "paused"
-    fired(calls, paused=1)
+    fired(calls, paused=2, job_resumed=1)
