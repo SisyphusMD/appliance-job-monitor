@@ -34,8 +34,10 @@ leaves it to that trigger's own run.
 
 ## Configuration check
 
-Each run first checks that every state label the configuration can reach is an option of the
-helper, that those labels are distinct, and that the finish threshold is below the start threshold.
-A configuration that fails writes nothing. The problem is shown as a persistent notification at
-startup, on reload, when the automation is switched on or when the helper's options change, and is
-cleared once the check passes.
+Each run first checks that the helper has all six state labels as options, that the labels are
+distinct, and that the finish threshold is below the start threshold. Every label is required, even
+for a plug without a switch or overload sensor, so setup is one fixed list to copy. Options are not
+added automatically: `input_select.set_options` changes them only until Home Assistant restarts,
+after which the helper would discard its saved state. A configuration that fails writes nothing.
+The problem is shown as a persistent notification at startup, on reload, when the automation is
+switched on or when the helper's options change, and is cleared once the check passes.

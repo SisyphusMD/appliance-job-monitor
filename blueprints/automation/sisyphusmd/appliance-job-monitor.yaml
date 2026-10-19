@@ -7,8 +7,8 @@ blueprint:
     finishes.
 
 
-    The state is kept in an `input_select` helper you create, which must contain the state
-    labels below.
+    The state is kept in a dropdown (`input_select`) helper you create, with the six state
+    options listed under State helper.
   domain: automation
   source_url: https://github.com/SisyphusMD/appliance-job-monitor/releases/latest/download/appliance-job-monitor.yaml
   homeassistant:
@@ -29,8 +29,9 @@ blueprint:
         state_select:
           name: State helper
           description: >-
-            The `input_select` that holds this appliance's state. Its options must include
-            every state label.
+            A dropdown helper (`input_select`) to hold this appliance's state, with these options:
+            idle, job_ongoing, paused, job_completed, unplugged, detached_overload (or your own
+            state labels, if you change them below).
           selector:
             entity:
               filter:
@@ -206,32 +207,24 @@ variables:
     Completed: !input label_completed
     Unplugged: !input label_unplugged
     Cut off by overload: !input label_overload
-  # Only the labels this configuration can reach have to be options of the helper, so an
-  # appliance without a plug switch or overload sensor needs no options for those states.
   problems: >-
-    {% set used = ['Running', 'Completed']
-       + (['Paused'] if plug_switch is string else [])
-       + (['Idle', 'Unplugged'] if plug_switch is string or overload_sensor is string else [])
-       + (['Cut off by overload'] if overload_sensor is string else []) %}
     {% set options = state_attr(state_select, 'options') %}
-    {% set ns = namespace(out=[], chosen=[]) %}
-    {% for name in used %}
-      {% set ns.chosen = ns.chosen + [labels[name]] %}
-    {% endfor %}
+    {% set chosen = labels.values() | list %}
+    {% set ns = namespace(out=[]) %}
     {% if options is none %}
       {% set ns.out = ns.out + ['The state helper ' ~ state_select ~ ' was not found.'] %}
     {% else %}
-      {% for name in used if labels[name] not in options %}
-        {% set ns.out = ns.out + ['The ' ~ name ~ ' label "' ~ labels[name] ~ '" is not an option of '
-                                  ~ state_select ~ '.'] %}
-      {% endfor %}
+      {% set missing = chosen | reject('in', options) | unique(case_sensitive=true) | list %}
+      {% if missing %}
+        {% set ns.out = ns.out + ['Add these options to ' ~ state_select ~ ': ' ~ missing | join(', ')] %}
+      {% endif %}
     {% endif %}
-    {% if ns.chosen | unique(case_sensitive=true) | list | count < ns.chosen | count %}
+    {% if chosen | unique(case_sensitive=true) | list | count < chosen | count %}
       {% set ns.out = ns.out + ['Each state label must be different.'] %}
     {% endif %}
     {% if finish_threshold >= start_threshold %}
-      {% set ns.out = ns.out + ['The finish threshold (' ~ finish_threshold ~ ' W) must be below the start threshold ('
-                                ~ start_threshold ~ ' W).'] %}
+      {% set ns.out = ns.out + ['The finish threshold (' ~ finish_threshold
+                                ~ ' W) must be below the start threshold (' ~ start_threshold ~ ' W).'] %}
     {% endif %}
     {{ ns.out }}
   notification_id: "appliance_job_monitor_{{ this.entity_id if this else 'unknown' }}"

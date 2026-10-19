@@ -106,8 +106,9 @@ async def test_custom_state_labels_are_written_and_read(
     hass: HomeAssistant, monitor: Monitor, advance: Advance
 ) -> None:
     await monitor(
-        labels=["Off", "Running", "Done"],
+        labels=["Off", "Running", "Done", "paused", "unplugged", "detached_overload"],
         initial="Off",
+        label_idle="Off",
         label_running="Running",
         label_completed="Done",
     )

@@ -171,6 +171,7 @@ async def test_custom_labels_cover_the_relay_states(
         "label_paused": "On hold",
         "label_completed": "Done",
         "label_unplugged": "No power",
+        "label_overload": "Tripped",
     }
     await relay_monitor(
         monitor, labels=list(labels.values()), initial="Done", resume_grace={"seconds": 60}, **labels
