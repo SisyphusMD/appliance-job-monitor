@@ -28,9 +28,11 @@ BLUEPRINT_PATH = "sisyphusmd/appliance-job-monitor.yaml"
 
 POWER = "sensor.washer_power"
 SELECT = "input_select.washer_state"
+PLUG = "switch.washer_plug"
 AUTOMATION = "automation.washer_monitor"
 # Passed as an input value to leave that input out entirely, so a default would apply.
 OMIT = object()
+HOOKS = ["job_started", "job_resumed", "job_completed", "paused", "abandoned", "unplugged"]
 DEFAULT_LABELS = ["idle", "job_ongoing", "paused", "job_completed", "unplugged", "detached_overload"]
 
 
@@ -47,6 +49,10 @@ def set_power(hass: HomeAssistant, watts: float | str, **attributes: Any) -> Non
     hass.states.async_set(
         POWER, str(watts), {"unit_of_measurement": "W", "device_class": "power", **attributes}
     )
+
+
+def set_plug(hass: HomeAssistant, state: str) -> None:
+    hass.states.async_set(PLUG, state)
 
 
 Advance = Callable[[float], Awaitable[None]]
@@ -82,8 +88,7 @@ def automation_config(automation_id: Any = "washer_monitor", **inputs: Any) -> d
     blueprint_inputs: dict[str, Any] = {
         "power_sensor": POWER,
         "state_select": SELECT,
-        "on_job_started": [{"action": "test.started"}],
-        "on_job_completed": [{"action": "test.completed"}],
+        **{f"on_{hook}": [{"action": f"test.{hook}"}] for hook in HOOKS},
         **inputs,
     }
     blueprint_inputs = {k: v for k, v in blueprint_inputs.items() if v is not OMIT}
@@ -116,10 +121,7 @@ def monitor(hass: HomeAssistant) -> Monitor:
             {"input_select": {"washer_state": {"options": options, "initial": initial}}},
         )
         set_power(hass, power)
-        calls = {
-            "on_job_started": async_mock_service(hass, "test", "started"),
-            "on_job_completed": async_mock_service(hass, "test", "completed"),
-        }
+        calls = {f"on_{hook}": async_mock_service(hass, "test", hook) for hook in HOOKS}
         assert await async_setup_component(hass, "automation", automation_config(**inputs))
         await settle()
         return calls

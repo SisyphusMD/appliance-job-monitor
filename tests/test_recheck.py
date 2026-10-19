@@ -14,10 +14,13 @@ from homeassistant.core import CoreState, HomeAssistant
 
 from .conftest import (
     AUTOMATION,
+    HOOKS,
     OMIT,
+    PLUG,
     Advance,
     Monitor,
     automation_config,
+    set_plug,
     set_power,
     settle,
     state,
@@ -193,3 +196,201 @@ async def test_a_sensor_that_comes_online_mid_job_is_tracked_without_a_recheck(
     assert state(hass) == "job_completed"
     assert len(calls["on_job_started"]) == 1
     assert len(calls["on_job_completed"]) == 1
+
+
+def fired(calls: dict, **expected: int) -> None:
+    """Assert how often each hook ran; every hook not named must not have run."""
+    assert {hook: len(calls[f"on_{hook}"]) for hook in HOOKS} == {
+        hook: expected.get(hook, 0) for hook in HOOKS
+    }
+
+
+@pytest.mark.parametrize(
+    ("initial", "expected", "hook"),
+    [("job_ongoing", "paused", "paused"), ("idle", "unplugged", "unplugged"), ("job_completed", "unplugged", "unplugged")],
+)
+async def test_a_plug_switched_off_while_home_assistant_was_down_is_applied(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance, initial: str, expected: str, hook: str
+) -> None:
+    set_plug(hass, "off")
+    calls = await boot(hass, monitor, plug_switch=PLUG, initial=initial, power=0)
+    await advance(600)
+
+    assert state(hass) == expected
+    fired(calls, **{hook: 1})
+
+
+@pytest.mark.parametrize(("power", "expected", "hook"), [(0.5, "idle", None), (50, "job_ongoing", "job_started")])
+async def test_an_unplugged_appliance_switched_back_on_while_down_is_applied(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance, power: float, expected: str, hook: str | None
+) -> None:
+    set_plug(hass, "on")
+    calls = await boot(hass, monitor, plug_switch=PLUG, initial="unplugged", power=power)
+    await advance(600)
+
+    assert state(hass) == expected
+    fired(calls, **({hook: 1} if hook else {}))
+
+
+async def test_a_paused_job_drawing_power_at_startup_resumes(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance
+) -> None:
+    set_plug(hass, "on")
+    calls = await boot(
+        hass, monitor, plug_switch=PLUG, initial="paused", power=50, start_delay={"seconds": 5}
+    )
+    await advance(4)
+    assert state(hass) == "paused"
+
+    await advance(2)
+    assert state(hass) == "job_ongoing"
+    await advance(600)
+    fired(calls, job_resumed=1)
+
+
+@pytest.mark.parametrize("plug_switch", [PLUG, OMIT], ids=["plug-on", "no-plug-switch"])
+async def test_a_paused_job_quiet_at_startup_is_abandoned_after_the_grace(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance, plug_switch: object
+) -> None:
+    set_plug(hass, "on")
+    calls = await boot(
+        hass, monitor, plug_switch=plug_switch, initial="paused", power=0, resume_grace={"seconds": 120}
+    )
+    await advance(110)
+    assert state(hass) == "paused"
+
+    await advance(20)
+    assert state(hass) == "idle"
+    fired(calls, abandoned=1)
+
+
+async def test_a_paused_job_resuming_during_the_startup_grace_honours_the_start_delay(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance
+) -> None:
+    set_plug(hass, "on")
+    calls = await boot(
+        hass,
+        monitor,
+        plug_switch=PLUG,
+        initial="paused",
+        power=0,
+        start_delay={"seconds": 30},
+        resume_grace={"seconds": 120},
+    )
+    await advance(20)
+    set_power(hass, 50)
+    await advance(20)
+    set_power(hass, 0)
+    await advance(20)
+    assert state(hass) == "paused", "a blip shorter than the start delay resumed the job"
+
+    set_power(hass, 50)
+    await advance(31)
+    assert state(hass) == "job_ongoing"
+    await advance(600)
+    fired(calls, job_resumed=1)
+
+
+async def test_switching_off_during_the_startup_grace_keeps_the_job_paused(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance
+) -> None:
+    set_plug(hass, "on")
+    calls = await boot(
+        hass, monitor, plug_switch=PLUG, initial="paused", power=0, resume_grace={"seconds": 120}
+    )
+    await advance(60)
+    set_plug(hass, "off")
+    await advance(600)
+    assert state(hass) == "paused"
+
+    set_plug(hass, "on")
+    await advance(121)
+    assert state(hass) == "idle"
+    fired(calls, abandoned=1)
+
+
+async def test_a_paused_job_with_the_plug_still_off_stays_paused(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance
+) -> None:
+    set_plug(hass, "off")
+    calls = await boot(hass, monitor, plug_switch=PLUG, initial="paused", power=0)
+    await advance(900)
+
+    assert state(hass) == "paused"
+    fired(calls)
+
+
+async def test_switching_off_during_the_startup_finish_delay_pauses_instead_of_completing(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance
+) -> None:
+    set_plug(hass, "on")
+    calls = await boot(
+        hass, monitor, plug_switch=PLUG, initial="job_ongoing", power=0.5, finish_delay={"seconds": 60}
+    )
+    await advance(20)
+    set_plug(hass, "off")
+    await advance(600)
+
+    assert state(hass) == "paused"
+    fired(calls, paused=1)
+
+
+async def test_switching_off_during_the_startup_start_delay_unplugs_instead_of_starting(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance
+) -> None:
+    """The plug may report the switch before the power reading drops."""
+    set_plug(hass, "on")
+    calls = await boot(hass, monitor, plug_switch=PLUG, power=50, start_delay={"seconds": 60})
+    await advance(20)
+    set_plug(hass, "off")
+    await advance(50)
+    set_power(hass, 0)
+    await advance(600)
+
+    assert state(hass) == "unplugged"
+    fired(calls, unplugged=1)
+
+
+@pytest.mark.parametrize("plug_switch", [PLUG, OMIT], ids=["plug-on", "no-plug-switch"])
+async def test_a_resume_at_startup_that_falls_short_still_gets_the_grace(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance, plug_switch: object
+) -> None:
+    set_plug(hass, "on")
+    calls = await boot(
+        hass,
+        monitor,
+        plug_switch=plug_switch,
+        initial="paused",
+        power=50,
+        start_delay={"seconds": 30},
+        resume_grace={"seconds": 120},
+    )
+    await advance(10)
+    set_power(hass, 0)
+    await advance(115)
+    assert state(hass) == "paused"
+
+    await advance(20)
+    assert state(hass) == "idle"
+    fired(calls, abandoned=1)
+
+
+async def test_switching_off_during_a_resume_at_startup_keeps_the_job_paused(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance
+) -> None:
+    set_plug(hass, "on")
+    calls = await boot(
+        hass,
+        monitor,
+        plug_switch=PLUG,
+        initial="paused",
+        power=50,
+        start_delay={"seconds": 30},
+        resume_grace={"seconds": 120},
+    )
+    await advance(10)
+    set_plug(hass, "off")
+    await advance(600)
+
+    assert state(hass) == "paused"
+    fired(calls)

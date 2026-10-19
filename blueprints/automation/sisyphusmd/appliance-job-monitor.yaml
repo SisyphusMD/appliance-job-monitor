@@ -35,6 +35,16 @@ blueprint:
             entity:
               filter:
                 - domain: input_select
+        plug_switch:
+          name: Plug switch
+          description: >-
+            Optional. The plug's on/off switch, so a job switched off midway is paused rather than
+            finished.
+          default: []
+          selector:
+            entity:
+              filter:
+                - domain: switch
     thresholds:
       name: Thresholds and timing
       icon: mdi:tune-variant
@@ -79,19 +89,43 @@ blueprint:
             seconds: 10
           selector:
             duration: {}
+        resume_grace:
+          name: Resume grace
+          description: >-
+            After the plug is switched back on, how long a paused job has to draw power again
+            before it is given up as abandoned.
+          default:
+            minutes: 5
+          selector:
+            duration: {}
     labels:
       name: State labels
       icon: mdi:label-outline
       collapsed: true
       input:
+        label_idle:
+          name: Idle
+          default: idle
+          selector:
+            text: {}
         label_running:
           name: Running
           default: job_ongoing
           selector:
             text: {}
+        label_paused:
+          name: Paused
+          default: paused
+          selector:
+            text: {}
         label_completed:
           name: Completed
           default: job_completed
+          selector:
+            text: {}
+        label_unplugged:
+          name: Unplugged
+          default: unplugged
           selector:
             text: {}
     actions:
@@ -104,21 +138,43 @@ blueprint:
           default: []
           selector:
             action: {}
+        on_job_resumed:
+          name: When a paused job resumes
+          default: []
+          selector:
+            action: {}
         on_job_completed:
           name: When a job finishes
           default: []
           selector:
             action: {}
+        on_paused:
+          name: When a running job is switched off
+          default: []
+          selector:
+            action: {}
+        on_abandoned:
+          name: When a paused job never resumes
+          default: []
+          selector:
+            action: {}
+        on_unplugged:
+          name: When the plug is switched off with no job running
+          default: []
+          selector:
+            action: {}
 
-# Each run is a short reaction to one edge, guarded by the current state, so a queued run that has
-# gone stale does nothing. Queued rather than restart: a restart would cancel a user's action
-# midway whenever the next power reading arrived.
+# Queued rather than restart: a restart would cancel a user's action midway whenever the next power
+# reading arrived. A trigger can therefore wait behind a slow action or a re-check, so triggers that
+# claim something lasted (power high, power low, the plug on for the grace period) check it still
+# holds when their run starts. Switch edges replay in order, since they record what happened.
 mode: queued
 max: 10
 max_exceeded: silent
 
 variables:
   power_sensor: !input power_sensor
+  plug_switch: !input plug_switch
   start_threshold: !input start_threshold
   finish_threshold: !input finish_threshold
 
@@ -133,6 +189,20 @@ triggers:
     below: !input finish_threshold
     for: !input finish_delay
     id: power_low
+  # Without a plug switch these watch no entity and never fire.
+  - trigger: state
+    entity_id: !input plug_switch
+    to: "off"
+    id: plug_off
+  - trigger: state
+    entity_id: !input plug_switch
+    to: "on"
+    id: plug_on
+  - trigger: state
+    entity_id: !input plug_switch
+    to: "on"
+    for: !input resume_grace
+    id: plug_on_quiet
   # numeric_state fires only on a crossing, and a pending `for:` is dropped when triggers are
   # re-attached, so a reading already past a threshold at startup or reload would otherwise sit
   # unnoticed until the next crossing.
@@ -154,6 +224,25 @@ actions:
       - conditions:
           - condition: trigger
             id: power_high
+          - condition: numeric_state
+            entity_id: !input power_sensor
+            above: !input start_threshold
+          - condition: state
+            entity_id: !input state_select
+            state: !input label_paused
+        sequence:
+          - action: input_select.select_option
+            target:
+              entity_id: !input state_select
+            data:
+              option: !input label_running
+          - sequence: !input on_job_resumed
+      - conditions:
+          - condition: trigger
+            id: power_high
+          - condition: numeric_state
+            entity_id: !input power_sensor
+            above: !input start_threshold
           - condition: not
             conditions:
               - condition: state
@@ -167,9 +256,14 @@ actions:
               option: !input label_running
           # After the state write, so an action that fails cannot leave the state behind.
           - sequence: !input on_job_started
+      # Only a running job can finish, so the 0 W that follows switching the plug off can never
+      # pass for a completed job, whichever of the two the plug reports first.
       - conditions:
           - condition: trigger
             id: power_low
+          - condition: numeric_state
+            entity_id: !input power_sensor
+            below: !input finish_threshold
           - condition: state
             entity_id: !input state_select
             state: !input label_running
@@ -180,10 +274,89 @@ actions:
             data:
               option: !input label_completed
           - sequence: !input on_job_completed
-      # The same two transitions, re-derived from the current reading. Each waits out its delay
-      # and gives up the moment the reading stops passing its threshold, including landing exactly
-      # on it or going unavailable, so it is as strict as the trigger it stands in for. A crossing
-      # that arrives during the wait queues behind this run and then finds the state settled.
+      - conditions:
+          - condition: trigger
+            id: plug_off
+          - condition: state
+            entity_id: !input state_select
+            state: !input label_running
+        sequence: &pause
+          - action: input_select.select_option
+            target:
+              entity_id: !input state_select
+            data:
+              option: !input label_paused
+          - sequence: !input on_paused
+      - conditions:
+          - condition: trigger
+            id: plug_off
+          - condition: state
+            entity_id: !input state_select
+            state:
+              - !input label_idle
+              - !input label_completed
+        sequence: &unplug
+          - action: input_select.select_option
+            target:
+              entity_id: !input state_select
+            data:
+              option: !input label_unplugged
+          - sequence: !input on_unplugged
+      - conditions:
+          - condition: trigger
+            id: plug_on
+          - condition: state
+            entity_id: !input state_select
+            state: !input label_unplugged
+        sequence: &replug
+          - action: input_select.select_option
+            target:
+              entity_id: !input state_select
+            data:
+              option: !input label_idle
+      # A paused job resumes through power_high. One still paused once the plug has been back on
+      # for the whole grace period did not finish, so it is never reported as completed.
+      - conditions:
+          - condition: trigger
+            id: plug_on_quiet
+          - condition: state
+            entity_id: !input state_select
+            state: !input label_paused
+          - condition: state
+            entity_id: !input plug_switch
+            state: "on"
+            for: !input resume_grace
+        sequence: &abandon
+          - action: input_select.select_option
+            target:
+              entity_id: !input state_select
+            data:
+              option: !input label_idle
+          - sequence: !input on_abandoned
+      # The transitions above, re-derived from the current readings. A plug switch read as off
+      # wins, as its own trigger would have. Each wait gives up the moment the reading stops
+      # passing its threshold, including landing exactly on it or going unavailable, so it is as
+      # strict as the `for:` it stands in for, and the moment the plug is switched off, so that
+      # edge is applied in order after this run.
+      - conditions:
+          - condition: trigger
+            id: recheck
+          - condition: template
+            value_template: "{{ plug_switch is string and is_state(plug_switch, 'off') }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: state
+                    entity_id: !input state_select
+                    state: !input label_running
+                sequence: *pause
+              - conditions:
+                  - condition: state
+                    entity_id: !input state_select
+                    state:
+                      - !input label_idle
+                      - !input label_completed
+                sequence: *unplug
       - conditions:
           - condition: trigger
             id: recheck
@@ -191,18 +364,20 @@ actions:
             conditions:
               - condition: state
                 entity_id: !input state_select
-                state: !input label_running
+                state:
+                  - !input label_running
+                  - !input label_paused
           - condition: numeric_state
             entity_id: !input power_sensor
             above: !input start_threshold
         sequence:
-          - wait_template: >-
-              {{ not (states(power_sensor) | is_number
-                      and states(power_sensor) | float > start_threshold) }}
+          - wait_template: &start_broken >-
+              {{ (plug_switch is string and is_state(plug_switch, 'off'))
+                 or not (states(power_sensor) | is_number
+                         and states(power_sensor) | float > start_threshold) }}
             timeout: !input start_delay
-          - condition: numeric_state
-            entity_id: !input power_sensor
-            above: !input start_threshold
+          - condition: template
+            value_template: &start_held "{{ not wait.completed }}"
           - action: input_select.select_option
             target:
               entity_id: !input state_select
@@ -220,15 +395,80 @@ actions:
             below: !input finish_threshold
         sequence:
           - wait_template: >-
-              {{ not (states(power_sensor) | is_number
-                      and states(power_sensor) | float < finish_threshold) }}
+              {{ (plug_switch is string and is_state(plug_switch, 'off'))
+                 or not (states(power_sensor) | is_number
+                         and states(power_sensor) | float < finish_threshold) }}
             timeout: !input finish_delay
-          - condition: numeric_state
-            entity_id: !input power_sensor
-            below: !input finish_threshold
+          - condition: template
+            value_template: *start_held
           - action: input_select.select_option
             target:
               entity_id: !input state_select
             data:
               option: !input label_completed
           - sequence: !input on_job_completed
+      - conditions:
+          - condition: trigger
+            id: recheck
+          - condition: state
+            entity_id: !input state_select
+            state: !input label_unplugged
+        sequence: *replug
+      # How long the plug has already been on is unknown here, so the paused job gets a full
+      # grace period from now, after any resume already under way has had its start delay.
+      - conditions:
+          - condition: trigger
+            id: recheck
+          - condition: state
+            entity_id: !input state_select
+            state: !input label_paused
+        sequence:
+          - if:
+              - condition: numeric_state
+                entity_id: !input power_sensor
+                above: !input start_threshold
+            then:
+              - wait_template: *start_broken
+                timeout: !input start_delay
+              - if:
+                  - condition: template
+                    value_template: *start_held
+                then:
+                  - action: input_select.select_option
+                    target:
+                      entity_id: !input state_select
+                    data:
+                      option: !input label_running
+                  - sequence: !input on_job_resumed
+                  - stop: Resumed
+              # A condition here would end only this branch of the `if`, not the run.
+              - if:
+                  - condition: template
+                    value_template: "{{ plug_switch is string and is_state(plug_switch, 'off') }}"
+                then:
+                  - stop: Switched off
+          - wait_for_trigger:
+              - trigger: numeric_state
+                entity_id: !input power_sensor
+                above: !input start_threshold
+                for: !input start_delay
+              - trigger: state
+                entity_id: !input plug_switch
+                to: "off"
+            timeout: !input resume_grace
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ wait.trigger is none }}"
+                sequence: *abandon
+              - conditions:
+                  - condition: numeric_state
+                    entity_id: !input power_sensor
+                    above: !input start_threshold
+                sequence:
+                  - action: input_select.select_option
+                    target:
+                      entity_id: !input state_select
+                    data:
+                      option: !input label_running
+                  - sequence: !input on_job_resumed
