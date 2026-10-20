@@ -10,8 +10,6 @@ paused or is abandoned, using nothing but the power reading of the smart plug it
 > [GitHub](https://github.com/SisyphusMD/appliance-job-monitor/issues).** The Forgejo repository
 > does not take external issues.
 
-> **Status: in development.** There is no release yet, so there is nothing to import.
-
 ## What it does
 
 Each appliance gets one `input_select` helper that holds its state: `idle`, `job_ongoing`,
