@@ -1,0 +1,199 @@
+name: Release
+
+# Cut a release from main: pick the bump in the Forgejo UI. This promotes [Unreleased] in the
+# CHANGELOG, runs both test suites on the commit being released, then commits and tags. The tag
+# triggers publish.yml, which attaches the blueprint to the Forgejo, NAS and GitHub releases.
+#
+# Split in two: `gate` decides what the release IS while holding no credential; `tag` is the only job
+# handed the write token, and it re-derives the same edit from a fresh checkout and refuses to push
+# unless the bytes hash to what the gate qualified.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump"
+        required: true
+        type: choice
+        options: [patch, minor, major]
+
+concurrency:
+  group: release-cut
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Qualify release intent (secret-free)
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      tag: ${{ steps.ver.outputs.tag }}
+      date: ${{ steps.ver.outputs.date }}
+      intent_sha256: ${{ steps.intent.outputs.sha256 }}
+    steps:
+      - name: Refuse non-main dispatches
+        run: |
+          if [ "${{ github.ref_name }}" != "main" ]; then
+            echo "::error::Release must be dispatched from main; got '${{ github.ref_name }}'"
+            exit 1
+          fi
+
+      - name: Checkout (full history + tags)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Shellcheck
+        run: bash packaging/shellcheck-all.sh
+
+      - name: Compute next version
+        id: ver
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: |
+          set -euo pipefail
+          while IFS='=' read -r key value; do declare "$key=$value"; done \
+            < <(bash packaging/next-version.sh "$BUMP")
+          # The date is decided ONCE here: the tag job reproduces the gate's patch byte for byte, so
+          # a second `date -u` across UTC midnight would abort a good release on a hash mismatch.
+          {
+            echo "version=${version}"
+            echo "tag=${tag}"
+            echo "date=$(date -u +%Y-%m-%d)"
+          } >> "$GITHUB_OUTPUT"
+          echo "Releasing ${version} (bump=${BUMP}, previous=${previous:-none})"
+
+      - name: Sanity guards
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          set -euo pipefail
+          grep -qE '^## \[Unreleased\]' CHANGELOG.md || { echo "::error::Missing '## [Unreleased]'"; exit 1; }
+          ! grep -qE "^## \[${VERSION}\]" CHANGELOG.md \
+            || { echo "::error::CHANGELOG already has [${VERSION}]"; exit 1; }
+          ! git rev-parse -q --verify "refs/tags/${TAG}" >/dev/null \
+            || { echo "::error::Tag ${TAG} exists"; exit 1; }
+          # The notes are the release's only description of what changed, so an empty section would
+          # publish a release that says nothing.
+          bash packaging/changelog-section.sh Unreleased | grep -q '[^[:space:]]' \
+            || { echo "::error::[Unreleased] is empty; describe the release before cutting it"; exit 1; }
+
+      # No dependency notes, unlike the siblings: every pinned dependency here is test or CI tooling,
+      # and none of it reaches the file users install.
+      - name: Promote [Unreleased] in CHANGELOG
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          DATE: ${{ steps.ver.outputs.date }}
+        run: bash packaging/promote-changelog.sh "$VERSION" "$DATE"
+
+      - name: Snapshot the exact intended release diff
+        id: intent
+        run: |
+          set -euo pipefail
+          # The release edit is the CHANGELOG and nothing else: the blueprint carries no version.
+          echo CHANGELOG.md > "$RUNNER_TEMP/expected-release-paths"
+          git diff --name-only > "$RUNNER_TEMP/actual-release-paths"
+          diff -u "$RUNNER_TEMP/expected-release-paths" "$RUNNER_TEMP/actual-release-paths"
+          test -z "$(git diff --cached --name-only)"
+          test -z "$(git ls-files --others --exclude-standard)"
+          git diff --binary | sha256sum | awk '{print "sha256=" $1}' >> "$GITHUB_OUTPUT"
+
+  test:
+    name: Test on Home Assistant ${{ matrix.target }}
+    # The same suites ci.yml runs, on the exact commit being tagged. CI on main may not have finished,
+    # or may have run on a different Home Assistant than the latest one now pinned.
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: floor
+            python: "3.12"
+          - target: latest
+            python: "3.14"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Retried in-step, guarded on `!= 'success'` rather than `== 'failure'`: an unset outcome must
+      # retry, or `continue-on-error` would swallow the first failure.
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        id: setup_python
+        continue-on-error: true
+        with:
+          python-version: ${{ matrix.python }}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        if: steps.setup_python.outcome != 'success'
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install uv
+        env:
+          # renovate: datasource=pypi depName=uv
+          UV: "0.12.5"
+        run: python3 -m pip install "uv==$UV"
+      - name: Test
+        env:
+          UV_PYTHON_DOWNLOADS: never
+        run: bash packaging/run-tests.sh "${{ matrix.target }}"
+
+  tag:
+    name: Authorize and push the release
+    needs: [gate, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fresh checkout with no persisted credential
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Reproduce the qualified release intent
+        env:
+          BUMP: ${{ inputs.bump }}
+          QUALIFIED_VERSION: ${{ needs.gate.outputs.version }}
+          QUALIFIED_TAG: ${{ needs.gate.outputs.tag }}
+          QUALIFIED_DATE: ${{ needs.gate.outputs.date }}
+          QUALIFIED_INTENT_SHA256: ${{ needs.gate.outputs.intent_sha256 }}
+        run: |
+          set -euo pipefail
+          # Same derivation as the gate, on a tree no gate step ever touched. Nothing here trusts
+          # the gate beyond the version and the hash it has to match.
+          while IFS='=' read -r key value; do declare "$key=$value"; done \
+            < <(bash packaging/next-version.sh "$BUMP")
+          if [ "$version" != "$QUALIFIED_VERSION" ] || [ "$tag" != "$QUALIFIED_TAG" ]; then
+            echo "::error::qualified release intent changed between runners"; exit 1
+          fi
+          # An `if`, not a bare `! cmd`: a negated command never trips errexit.
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "::error::Tag $tag exists"; exit 1
+          fi
+          bash packaging/promote-changelog.sh "$version" "$QUALIFIED_DATE"
+          [ "$(git diff --name-only)" = CHANGELOG.md ]
+          test -z "$(git diff --cached --name-only)"
+          test -z "$(git ls-files --others --exclude-standard)"
+          ACTUAL_INTENT_SHA256=$(git diff --binary | sha256sum | awk '{print $1}')
+          [ "$ACTUAL_INTENT_SHA256" = "$QUALIFIED_INTENT_SHA256" ] \
+            || { echo "::error::release bytes differ from the qualified intent"; exit 1; }
+
+      - name: Commit and tag the reproduced release
+        env:
+          VERSION: ${{ needs.gate.outputs.version }}
+          TAG: ${{ needs.gate.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "forgejo-actions[bot]"
+          git config user.email "forgejo-actions[bot]@users.noreply.bryantserver.com"
+          git add CHANGELOG.md
+          git commit -m "release: ${VERSION}"
+          git tag -a -m "release: ${VERSION}" "$TAG"
+
+      # Atomic: two sequential pushes leave a window where main has the release commit and no tag,
+      # and the re-run then meets an already-promoted CHANGELOG.
+      - name: Push the commit and tag atomically
+        env:
+          TAG: ${{ needs.gate.outputs.tag }}
+          TOKEN: ${{ secrets.CLUSTER_FORGEJO_REPO_WRITE_PAT }}
+          # Read-only, for the helper's mirror probe, which refuses to call GitHub unauthenticated.
+          GH_REPO_READ_PAT: ${{ secrets.GH_REPO_READ_PAT }}
+        run: bash packaging/push-tag.sh "$TAG" "$TOKEN" "${{ github.ref_name }}"

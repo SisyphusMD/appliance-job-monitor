@@ -1,0 +1,144 @@
+name: Publish
+
+# Runs on the Forgejo source when release.yml pushes a v* tag, and attaches the blueprint to the
+# Forgejo, NAS and GitHub releases. It is the only place that can reach all three.
+on:
+  # Dispatchable with a tag as the ref, to finish a publish that partly failed. Every helper is
+  # create-or-reuse with immutable assets, so a re-run completes a partial publish without duplicating.
+  workflow_dispatch:
+  push:
+    tags: ["v*.*.*"]
+
+concurrency:
+  # Deduplicate only the same tag, and never cancel: a single global group keeps one pending run, so
+  # a later tag could displace an earlier tag's pending publish. The FULL ref, because `ref_name`
+  # would put a branch sharing a tag's name in the same group.
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: Refuse anything that is not a new release tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check the ref
+        run: |
+          set -euo pipefail
+          # The grammar every release helper enforces, not a glob: `v0.3.0.dev1` matches `v*.*.*`.
+          case "${GITHUB_REF}" in
+            refs/tags/*) : ;;
+            *) echo "::error::${GITHUB_REF} is not a tag; dispatch this with a release tag as the ref" >&2; exit 1 ;;
+          esac
+          # shellcheck source=/dev/null
+          . packaging/release-common.sh
+          rel_validate_tag "${GITHUB_REF_NAME}"
+          echo "publishing ${GITHUB_REF_NAME}"
+
+      - name: Refuse a tag that has already published
+        # Push only: a dispatch is the documented way to FINISH a partial publish.
+        if: ${{ github.event_name == 'push' }}
+        env:
+          GH_READ: ${{ secrets.GH_REPO_READ_PAT }}
+        run: |
+          set -euo pipefail
+          # A tag push for a tag that already has a release is a RE-pushed tag (a history rewrite
+          # moves every tag at once). Its assets are immutable, so republishing can only end in a
+          # refusal, after writing new bytes to whichever host lacked the release. Both targets are
+          # asked, because a publish that died between them leaves the release on one only.
+          : "${GH_READ:?a read-only GitHub token is required to check the mirror}"
+          published_on=""
+          path="repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}"
+          for target in \
+            "the source of truth|${GITHUB_SERVER_URL}/api/v1/${path}|" \
+            "the mirror|https://api.github.com/${path}|${GH_READ}"
+          do
+            where=${target%%|*}; rest=${target#*|}; url=${rest%%|*}; tok=${rest#*|}
+            auth=()
+            [ -n "$tok" ] && auth=(-H "Authorization: Bearer $tok")
+            code=000
+            for attempt in 1 2 3; do
+              code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "${auth[@]}" "$url" 2>/dev/null) || code=000
+              case "$code" in 200|404) break ;; esac
+              echo "::warning::$where answered ${code} for ${GITHUB_REF_NAME} (attempt ${attempt}/3)"
+              sleep $(( attempt * 10 ))
+            done
+            case "$code" in
+              404) ;;
+              200) published_on="$where"; break ;;
+              # Fail closed: an unanswerable probe is exactly when a partial release goes unseen. A
+              # dispatch with the tag as the ref skips this step.
+              *)
+                echo "::error::could not determine whether ${GITHUB_REF_NAME} is already published on" \
+                  "${where} (HTTP ${code}). If this tag is genuinely new, dispatch this workflow with" \
+                  "the tag as the ref." >&2
+                exit 1
+                ;;
+            esac
+          done
+          if [ -n "$published_on" ]; then
+            echo "::error::${GITHUB_REF_NAME} already has a release on ${published_on}, so this is a" \
+              "re-pushed tag. To finish a partial publish, dispatch this workflow with the tag as the ref." >&2
+            exit 1
+          fi
+          echo "no release for ${GITHUB_REF_NAME} on either target"
+
+  releases:
+    name: Create the three releases (Forgejo, NAS, GitHub)
+    needs: guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Release notes from CHANGELOG
+        run: bash packaging/changelog-section.sh "${GITHUB_REF_NAME#v}" > notes.md
+      - name: Attach the blueprint to each release
+        run: |
+          set -uo pipefail
+          # The same bytes under two names: see packaging/asset-roles.sh.
+          mkdir dist
+          src=blueprints/automation/sisyphusmd/appliance-job-monitor.yaml
+          cp "$src" "dist/appliance-job-monitor-${GITHUB_REF_NAME#v}.yaml"
+          cp "$src" dist/appliance-job-monitor.yaml
+          ASSETS=(dist/*.yaml)
+          # Every target is attempted even when an earlier one fails, so one unreachable host does not
+          # cost the others their release; failures are re-raised at the end.
+          failed=""
+          bash packaging/forgejo-release.sh forgejo.bryantserver.com \
+            "${{ secrets.CLUSTER_FORGEJO_REPO_WRITE_PAT }}" "$GITHUB_REF_NAME" notes.md "${ASSETS[@]}" \
+            || failed="$failed forgejo.bryantserver.com"
+          bash packaging/forgejo-release.sh forgejo.lan.bryantserver.com \
+            "${{ secrets.NAS_FORGEJO_REPO_WRITE_PAT }}" "$GITHUB_REF_NAME" notes.md "${ASSETS[@]}" \
+            || failed="$failed forgejo.lan.bryantserver.com"
+          bash packaging/github-release.sh \
+            "${{ secrets.GH_REPO_WRITE_PAT }}" "$GITHUB_REF_NAME" notes.md "${ASSETS[@]}" \
+            || failed="$failed github.com"
+          if [ -n "$failed" ]; then
+            echo "::error::release publishing failed for:$failed"
+            exit 1
+          fi
+
+  reconcile:
+    name: Reconcile releases across registries (heal history)
+    # `always()`: this exists for the case where one registry failed above, so gating it on success
+    # would disable it in the only situation it is for. It is warn-only for the same reason.
+    needs: [guard, releases]
+    if: ${{ always() && needs.guard.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0  # all tags needed for the reconcile loop
+          persist-credentials: false
+      - name: Reconcile every tag across all three registries
+        # Downloads each recognised asset, accepts bytes only when two registries agree on the
+        # SHA-256, and fills that content into any registry missing it. A registry serving different
+        # bytes is reported, never overwritten.
+        env:
+          CLUSTER_TOKEN: ${{ secrets.CLUSTER_FORGEJO_REPO_WRITE_PAT }}
+          NAS_TOKEN: ${{ secrets.NAS_FORGEJO_REPO_WRITE_PAT }}
+          GH_TOKEN: ${{ secrets.GH_REPO_WRITE_PAT }}
+        run: bash packaging/reconcile-releases.sh

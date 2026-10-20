@@ -25,6 +25,18 @@ packaging/run-tests.sh floor
 A change to the blueprint comes with a test that fails without it. CI runs both suites, plus
 yamllint, ruff and shellcheck, on every push and pull request.
 
+Note user-visible changes under `## [Unreleased]` in `CHANGELOG.md`; that section becomes the
+release notes.
+
+## Releasing
+
+Run the Release workflow on Forgejo from `main` and pick the bump. It reruns both test suites on
+that commit, promotes `[Unreleased]`, and tags. The tag runs Publish, which attaches the blueprint
+to the Forgejo, NAS and GitHub releases under two names with the same bytes:
+`appliance-job-monitor-X.Y.Z.yaml`, and `appliance-job-monitor.yaml` for the latest-release
+download link that the blueprint's `source_url` and the README's import button use. Dispatch
+Publish with the tag as the ref to finish a publish that partly failed.
+
 ## License
 
 MIT. The consumers are Home Assistant users, who import the blueprint into their own instance and

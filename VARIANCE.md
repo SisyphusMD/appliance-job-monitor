@@ -32,3 +32,16 @@ request template's sibling checklist is answered "not applicable".
 The siblings' CI also builds release artifacts, installs them across a matrix of platforms and
 waits for native macOS runs. This repository builds nothing: the released file is the blueprint
 itself, so CI lints it and tests it on the oldest and newest supported Home Assistant.
+
+## Releases carry the blueprint under a stable name too
+
+Each release attaches `appliance-job-monitor.yaml` beside the versioned file. Both forges resolve
+a latest-release download only by exact asset name, and Home Assistant's re-import follows the
+blueprint's `source_url`, so that name has to stay the same from release to release.
+
+## No release candidates or dependency notes
+
+The siblings cut `-rc` candidates to put on hardware before a stable release, and list the
+dependency bumps in their release notes. Here the Home Assistant test suites are the hardware
+check, and every pinned dependency is test or CI tooling that never reaches the installed file,
+so there is no prerelease workflow and the notes are the CHANGELOG alone.
