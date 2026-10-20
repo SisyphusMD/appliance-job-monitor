@@ -8,3 +8,9 @@ rules:
   # The blueprint's release URL is one unbreakable token.
   line-length:
     max: 120
+  # Workflows key their triggers on `on:`, which YAML 1.1 would read as a boolean.
+  truthy:
+    check-keys: false
+  # Renovate writes a digest pin's version comment one space after the value.
+  comments:
+    min-spaces-from-content: 1

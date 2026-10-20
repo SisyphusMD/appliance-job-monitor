@@ -1,0 +1,54 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "gitAuthor": "Renovate Bot <renovate@bryantserver.local>",
+  "prConcurrentLimit": 0,
+  "prHourlyLimit": 0,
+  "platformAutomerge": false,
+  "separateMinorPatch": true,
+  "fetchChangeLogs": "pr",
+  "enabledManagers": ["github-actions", "pip_requirements", "custom.regex"],
+  "github-actions": {
+    "managerFilePatterns": ["/(\\.github|\\.forgejo)/workflows/.+\\.ya?ml$/"]
+  },
+  "pip_requirements": {
+    "description": "Only the latest-release suite. requirements-test-floor.txt pins the oldest Home Assistant the blueprint supports, and raising that is a decision about who can use the blueprint, not an update.",
+    "managerFilePatterns": ["/^requirements-test\\.txt$/"]
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Version pins annotated with a `# renovate:` comment in the workflows and in packaging/release-pins.env. The annotation is the anchor; the same shape as the other SisyphusMD projects', so a pattern learned in one reads the same in all.",
+      "managerFilePatterns": [
+        "/(\\.github|\\.forgejo)/workflows/.+\\.ya?ml$/",
+        "/^packaging/release-pins\\.env$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>pypi|github-tags|gitea-tags) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?\\s+[^\\n]*?[:=]=?\\s*\"?(?<currentValue>\\d[\\w.-]*)"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Automerge patch, minor and digest updates once CI is green. The Home Assistant harness bump is the one that matters: CI runs the whole suite against the new release, so a green run is the evidence the blueprint still works on it.",
+      "matchUpdateTypes": ["patch", "minor", "digest"],
+      "automerge": true
+    },
+    {
+      "description": "The shared standard lives on the self-hosted Forgejo, so the gitea-tags datasource has to be told which host to ask. Held for review: packaging/refresh-pins.sh re-vendors the files on the branch, so the PR is complete, but a standard bump can change release machinery.",
+      "matchDepNames": ["SisyphusMD/project-standard"],
+      "registryUrls": ["https://forgejo.bryantserver.com"],
+      "automerge": false
+    },
+    {
+      "description": "The shellcheck image pin is owned by the shared standard: it lives in the vendored packaging/shellcheck-all.sh, which the drift check forbids editing here. It arrives as a re-vendor instead.",
+      "matchDepNames": ["koalaman/shellcheck"],
+      "enabled": false
+    }
+  ],
+  "postUpgradeTasks": {
+    "commands": ["bash packaging/refresh-pins.sh"],
+    "fileFilters": ["packaging/**", "STANDARD.lock", ".editorconfig", ".github/PULL_REQUEST_TEMPLATE.md"],
+    "executionMode": "branch"
+  }
+}

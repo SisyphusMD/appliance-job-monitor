@@ -12,6 +12,19 @@ or from its forks. Contributions must be your own work, written against the Home
 documentation and this repository, not against that blueprint's source. Matching its state names
 is deliberate and fine; matching its code is not.
 
+## Tests
+
+The blueprint is tested in a real Home Assistant, on the oldest release it supports and on the
+newest. With [uv](https://docs.astral.sh/uv/) installed:
+
+```sh
+packaging/run-tests.sh latest
+packaging/run-tests.sh floor
+```
+
+A change to the blueprint comes with a test that fails without it. CI runs both suites, plus
+yamllint, ruff and shellcheck, on every push and pull request.
+
 ## License
 
 MIT. The consumers are Home Assistant users, who import the blueprint into their own instance and

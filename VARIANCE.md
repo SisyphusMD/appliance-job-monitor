@@ -26,3 +26,9 @@ instance, so MIT matches what Home Assistant users expect. The reasoning is in
 
 whiskerless and dreame-valetudo are converged siblings. This repository has none, so the pull
 request template's sibling checklist is answered "not applicable".
+
+## CI is lint plus two test suites
+
+The siblings' CI also builds release artifacts, installs them across a matrix of platforms and
+waits for native macOS runs. This repository builds nothing: the released file is the blueprint
+itself, so CI lints it and tests it on the oldest and newest supported Home Assistant.

@@ -9,6 +9,7 @@
     "packaging/gitignore.base": "f87bec1f6d1ec56ea3678d45920689ac26c7c3a737316a22570121dadac9a9ac",
     "packaging/next-version.sh": "56c3a240d250e26bc09c7b7a4af4f2946e5f3ec454d43bd438c046c6572f44f8",
     "packaging/promote-changelog.sh": "c70413841343bad7417417ee6335e39edba4d4f809e334eec221534f7f64fe05",
+    "packaging/revendor-standard.sh": "32c93eeea1a08fdea43149456d6a1efde8834a721b2e98c9d7a1004fd454036a",
     "packaging/shellcheck-all.sh": "14c87d497082a8982044c61c09207845b010e8a5a6f5eecca657cc4c68677c5d"
   },
   "source_commit": "3bd62dc8cfa83c5631eea5d2340a3dfc2f250dee",

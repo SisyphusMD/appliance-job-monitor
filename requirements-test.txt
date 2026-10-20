@@ -1,3 +1,3 @@
 # Pins the Home Assistant release tests run against (the harness pins homeassistant exactly).
-# renovate: datasource=pypi depName=pytest-homeassistant-custom-component
+# Renovate bumps it, which moves the suite to each new release.
 pytest-homeassistant-custom-component==0.13.373

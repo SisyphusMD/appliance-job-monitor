@@ -1,7 +1,6 @@
 # The oldest Home Assistant the blueprint supports; must match homeassistant.min_version in the
 # blueprint. Not bumped by Renovate: raising the floor is a decision, not an update.
 #
-# Install with `uv pip install --exclude-newer 2024-10-03 -r requirements-test-floor.txt`. Later
-# releases of its unpinned dependencies break that Home Assistant (josepy 2 no longer provides what
-# its cloud client imports), so resolve as of the day 2024.10.0 shipped.
+# Install through `packaging/run-tests.sh floor`, which resolves its unpinned dependencies as of
+# the day that release shipped; a plain install pulls newer ones that break it.
 pytest-homeassistant-custom-component==0.13.171
