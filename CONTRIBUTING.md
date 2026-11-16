@@ -1,7 +1,8 @@
 # Contributing to appliance-job-monitor
 
 Bug reports, power traces from real appliances and fixes are all welcome. Please open issues and
-pull requests on [GitHub](https://github.com/SisyphusMD/appliance-job-monitor).
+pull requests on [Forgejo](https://forgejo.bryantserver.com/SisyphusMD/appliance-job-monitor/issues), where you can sign in with your
+GitHub account. The [GitHub repository](https://github.com/SisyphusMD/appliance-job-monitor) is a read-only mirror.
 
 ## Written from scratch
 
