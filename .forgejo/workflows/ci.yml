@@ -18,8 +18,8 @@ jobs:
   lint:
     name: Lint and repository checks
     # Trusted-ref gate: this runner is self-hosted and `pull_request` fires for forks too, so without
-    # this a fork's PR would run its own code on the owner's hardware. Fork PRs are covered by
-    # GitHub's hosted runners instead (.github/workflows/ci-pr.yml).
+    # this a fork's PR would run its own code on the owner's hardware. A fork's change is read
+    # before it runs here.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
