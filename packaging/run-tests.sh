@@ -3,7 +3,7 @@
 #
 #   packaging/run-tests.sh latest|floor [pytest arguments...]
 #
-# The one place both CI workflows and a local run install from, so the floor's resolve date and the
+# The one place CI and a local run install from, so the floor's resolve date and the
 # Python each target needs cannot differ between them. Needs uv on PATH.
 set -euo pipefail
 cd "$(dirname "$0")/.."
