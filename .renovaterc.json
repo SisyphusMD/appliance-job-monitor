@@ -36,7 +36,7 @@
     },
     {
       "description": "The shared standard lives on the self-hosted Forgejo, so the gitea-tags datasource has to be told which host to ask. Held for review: packaging/refresh-pins.sh re-vendors the files on the branch, so the PR is complete, but a standard bump can change release machinery.",
-      "matchDepNames": ["SisyphusMD/project-standard"],
+      "matchDepNames": ["SisyphusMD/project-rules"],
       "registryUrls": ["https://forgejo.bryantserver.com"],
       "automerge": false
     },

@@ -1,6 +1,6 @@
 # Deliberate differences from the SisyphusMD standard
 
-[project-standard](https://forgejo.bryantserver.com/SisyphusMD/project-standard) was written for
+[project-rules](https://forgejo.bryantserver.com/SisyphusMD/project-rules) was written for
 Python projects that ship packages. This repository ships one Home Assistant blueprint file. Each
 difference below is intended; anything not listed here is drift.
 

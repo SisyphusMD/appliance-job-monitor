@@ -49,6 +49,6 @@ project built for Home Assistant. No third-party code ships alongside it.
 ## Shared standard
 
 Files listed in `STANDARD.lock` are vendored from
-[project-standard](https://forgejo.bryantserver.com/SisyphusMD/project-standard) and must not be
+[project-rules](https://forgejo.bryantserver.com/SisyphusMD/project-rules) and must not be
 edited here. Change them there and re-vendor; `packaging/check-standard-sync.py` fails on an edited
 copy.

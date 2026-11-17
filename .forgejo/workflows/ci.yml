@@ -58,7 +58,7 @@ jobs:
         run: python3 packaging/check-doc-links.py .
       - name: Vendored standard has not drifted
         # A shared helper improved by editing the copy here never reaches the other projects. Change
-        # it in project-standard and re-vendor.
+        # it in project-rules and re-vendor.
         run: python3 packaging/check-standard-sync.py
       - name: .gitignore contains the shared base
         run: python3 packaging/check-gitignore-base.py .
