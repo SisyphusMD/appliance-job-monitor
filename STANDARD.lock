@@ -11,13 +11,14 @@
     "packaging/gitignore.base": "2d17dc175dd28d22fc2912ce4d5afecee080fdba369f3d6c7be3cdd72f9b798e",
     "packaging/next-version.sh": "56c3a240d250e26bc09c7b7a4af4f2946e5f3ec454d43bd438c046c6572f44f8",
     "packaging/promote-changelog.sh": "c70413841343bad7417417ee6335e39edba4d4f809e334eec221534f7f64fe05",
-    "packaging/push-tag.sh": "fa306e9a2586098f9918d97b7823ea43619f042e533ea8228740e122f07484b4",
+    "packaging/push-tag.sh": "f9150ae249318c704a4bea3826b3d25b06a0d89d084cadbdc6dfea6d4db58bce",
     "packaging/reconcile-releases.sh": "d2be84ae17f9da94605d5cc48bfac396f4fbc3eb0f35a577b464ff69c663694b",
     "packaging/release-common.sh": "767a7e7484f3e7f1289ff87c60a461ca374c2364b064ea37523f614bc8f744f3",
     "packaging/revendor-standard.sh": "100212f3dceb2ba34de81dd6a21c8c732ef3d5919fc8eb0a576a83abafc8bf46",
-    "packaging/shellcheck-all.sh": "14c87d497082a8982044c61c09207845b010e8a5a6f5eecca657cc4c68677c5d"
+    "packaging/shellcheck-all.sh": "14c87d497082a8982044c61c09207845b010e8a5a6f5eecca657cc4c68677c5d",
+    "packaging/verify-release-pr.py": "818f3cbe8627192b86478eb2f615f93b37592b4b95bed8db22695c6438b92562"
   },
-  "source_commit": "156f8c1211ca514f86ab02b4ab44ccbe124387eb",
+  "source_commit": "4c65c00350872d5243c5438fa7c07c5fea5d47bb",
   "source_repo": "SisyphusMD/project-rules",
-  "source_tag": "v0.2.0"
+  "source_tag": "v0.3.1"
 }

@@ -91,12 +91,18 @@ without the Tests workflow.
 
 ## Releasing
 
-Run the Release workflow on Forgejo from `main` and pick the bump. It reruns both test suites on
-that commit, promotes `[Unreleased]`, and tags. The tag runs Publish, which attaches the blueprint
-to the Forgejo, NAS and GitHub releases under two names with the same bytes:
-`appliance-job-monitor-X.Y.Z.yaml`, and `appliance-job-monitor.yaml` for the latest-release
-download link that the blueprint's `source_url` and the README's import button use. Dispatch
-Publish with the tag as the ref to finish a publish that partly failed.
+Run **Prepare Release** on Forgejo from `main`. Choose a version bump and supply the
+release issue number. The workflow runs both test suites and opens a PR with the
+changelog promotion. Merge it after the required checks pass and while it is up to
+date with `main`. If `main` moved, close the stale PR, delete its release branch,
+and run **Prepare Release** again with the same issue. If it already merged,
+revert the changelog promotion through a PR before preparing again.
+
+When ready to publish, run **Publish Release** from `main` with the merged PR number.
+It tags that exact merged commit. The tag runs Publish, which attaches the blueprint
+to the Forgejo, NAS and GitHub releases as `appliance-job-monitor-X.Y.Z.yaml` and
+`appliance-job-monitor.yaml`. Dispatch Publish with the existing tag as the ref to
+finish a publish that partly failed.
 
 ## License
 
