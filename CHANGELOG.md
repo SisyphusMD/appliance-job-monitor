@@ -6,6 +6,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- The test suite fails unless some test takes every trigger, condition branch and state
+  transition in the blueprint, read from Home Assistant's own run traces (#7).
 - The repo follows the SisyphusMD project rules: their required checks and AI review, issue
   templates, a `SECURITY.md` for private vulnerability reports, and its own test workflow
   renamed to `Tests` (#5).

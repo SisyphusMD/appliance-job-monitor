@@ -8,7 +8,7 @@ import pytest_homeassistant_custom_component.patch_time  # noqa: F401  # isort: 
 
 import asyncio
 import shutil
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Iterator
 from datetime import timedelta
 from pathlib import Path
 from typing import Any
@@ -21,6 +21,8 @@ from pytest_homeassistant_custom_component.common import (
     async_fire_time_changed,
     async_mock_service,
 )
+
+from . import branch_coverage
 
 ROOT = Path(__file__).resolve().parent.parent
 BLUEPRINT = ROOT / "blueprints" / "automation" / "sisyphusmd" / "appliance-job-monitor.yaml"
@@ -44,6 +46,66 @@ def blueprint_dir(hass: HomeAssistant, tmp_path: Path) -> None:
     target = tmp_path / "blueprints" / "automation" / BLUEPRINT_PATH
     target.parent.mkdir(parents=True)
     shutil.copy2(BLUEPRINT, target)
+
+
+@pytest.fixture(autouse=True)
+def record_branches(hass: HomeAssistant) -> Iterator[None]:
+    """Note which blueprint branches this test's automation runs took.
+
+    Home Assistant stores no trace for an automation without an id, so a test of one counts for
+    nothing here.
+    """
+    yield
+    branch_coverage.TAKEN.update(branch_coverage.taken(hass))
+
+
+def pytest_deselected(items: list[pytest.Item]) -> None:
+    branch_coverage.DESELECTED += len(items)
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtestloop(session: pytest.Session) -> Iterator[None]:
+    """Fail a whole-suite run in which some branch of the blueprint was never taken.
+
+    Only a run of the whole suite from the repository root, the way CI runs it, is checked: one
+    narrowed by paths, -k, -m or deselection is not meant to cover everything, and one with
+    failures already fails. The summary says which happened. A skipped test takes no branches.
+    """
+    result = yield
+    config = session.config
+    if config.option.collectonly:
+        reason = "collect-only"
+    elif config.args_source != pytest.Config.ArgsSource.TESTPATHS:
+        reason = "test paths given (needs a whole-suite run from the repository root)"
+    elif branch_coverage.DESELECTED:
+        reason = f"{branch_coverage.DESELECTED} tests deselected"
+    elif session.testsfailed:
+        reason = f"{session.testsfailed} tests failed"
+    else:
+        expected = branch_coverage.branches(BLUEPRINT)
+        branch_coverage.MISSING = [
+            where for branch, where in expected.items() if branch not in branch_coverage.TAKEN
+        ]
+        if branch_coverage.MISSING:
+            session.testsfailed += 1
+        taken = len(expected) - len(branch_coverage.MISSING)
+        branch_coverage.SUMMARY = (
+            f"Blueprint branch coverage: {taken} of {len(expected)} branches taken."
+            if branch_coverage.MISSING
+            else f"All {len(expected)} blueprint branches taken."
+        )
+        return result
+    branch_coverage.SUMMARY = f"Blueprint branch coverage NOT checked: {reason}."
+    return result
+
+
+def pytest_terminal_summary(terminalreporter: pytest.TerminalReporter) -> None:
+    if branch_coverage.MISSING:
+        terminalreporter.section("Blueprint branches no test takes", red=True)
+        for where in branch_coverage.MISSING:
+            terminalreporter.write_line(where)
+    if branch_coverage.SUMMARY:
+        terminalreporter.write_line(branch_coverage.SUMMARY)
 
 
 def set_power(hass: HomeAssistant, watts: float | str, **attributes: Any) -> None:
@@ -107,6 +169,8 @@ def automation_config(automation_id: Any = "washer_monitor", **inputs: Any) -> d
     automation = {
         "id": automation_id,
         "alias": "Washer monitor",
+        # Enough to keep every run of a test, for the branch coverage check.
+        "trace": {"stored_traces": 1000},
         "use_blueprint": {"path": BLUEPRINT_PATH, "input": blueprint_inputs},
     }
     return {"automation": {k: v for k, v in automation.items() if v is not OMIT}}
