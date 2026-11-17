@@ -1,0 +1,55 @@
+name: Publish Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: "Merged release pull request number"
+        required: true
+        type: string
+
+concurrency:
+  group: release-cut
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Verify and tag the merged release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify the exact merged release
+        id: release
+        env:
+          PR: ${{ inputs.pull_request }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          [[ "$PR" =~ ^[1-9][0-9]*$ ]] || { echo "::error::Enter the merged release PR number"; exit 1; }
+          git fetch --tags origin refs/heads/main:refs/remotes/origin/main
+          main=$(git rev-parse refs/remotes/origin/main)
+          curl -fsS --max-time 30 -H "Authorization: token $TOKEN" \
+            "$GITHUB_SERVER_URL/api/v1/repos/$GITHUB_REPOSITORY/pulls/$PR" \
+            | jq -e 'select(.flow == 0)' \
+            | python3 -I packaging/verify-release-pr.py "$GITHUB_REPOSITORY" "$PR" "$main" >> "$GITHUB_OUTPUT"
+
+      - name: Push only the verified release tag
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+          MERGE_COMMIT: ${{ steps.release.outputs.commit }}
+          TOKEN: ${{ secrets.CLUSTER_FORGEJO_REPO_WRITE_PAT }}
+          GH_REPO_READ_PAT: ${{ secrets.GH_REPO_READ_PAT }}
+        run: |
+          set -euo pipefail
+          if ! git show-ref --verify --quiet "refs/tags/$TAG"; then
+            git -c user.name='forgejo-actions[bot]' \
+              -c user.email='forgejo-actions[bot]@users.noreply.bryantserver.com' \
+              tag -a -m "release: ${TAG#v}" "$TAG" "$MERGE_COMMIT"
+          fi
+          bash packaging/push-tag.sh "$TAG" "$TOKEN" --merged-commit "$MERGE_COMMIT"

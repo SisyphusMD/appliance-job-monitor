@@ -1,6 +1,6 @@
 name: Publish
 
-# Runs on the Forgejo source when release.yml pushes a v* tag, and attaches the blueprint to the
+# Runs on the Forgejo source when Publish Release pushes a v* tag, and attaches the blueprint to the
 # Forgejo, NAS and GitHub releases. It is the only place that can reach all three.
 on:
   # Dispatchable with a tag as the ref, to finish a publish that partly failed. Every helper is
