@@ -101,7 +101,7 @@ jobs:
 
   test:
     name: Test on Home Assistant ${{ matrix.target }}
-    # The same suites ci.yml runs, on the exact commit being tagged. CI on main may not have finished,
+    # The same suites tests.yml runs, on the exact commit being tagged. CI on main may not have finished,
     # or may have run on a different Home Assistant than the latest one now pinned.
     runs-on: ubuntu-latest
     strategy:

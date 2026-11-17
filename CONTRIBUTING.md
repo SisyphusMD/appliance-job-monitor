@@ -4,6 +4,12 @@ Bug reports, power traces from real appliances and fixes are all welcome. Please
 pull requests on [Forgejo](https://forgejo.bryantserver.com/SisyphusMD/appliance-job-monitor/issues), where you can sign in with your
 GitHub account. The [GitHub repository](https://github.com/SisyphusMD/appliance-job-monitor) is a read-only mirror.
 
+This repo follows the [SisyphusMD project rules](https://forgejo.bryantserver.com/SisyphusMD/project-rules/src/branch/main/RULES.md):
+read them first. Every pull request closes an issue. This file adds only what is specific to this
+repo and never loosens the rules. Note rule 9 in particular: no AI attribution, such as a
+`Co-Authored-By` trailer for an assistant, anywhere in a contribution. Report a vulnerability as
+[SECURITY.md](SECURITY.md) says, never in a public issue.
+
 ## Sending a change
 
 A new account waits for a maintainer to activate it. Once it is active you can open issues, and
@@ -47,8 +53,33 @@ A change to the blueprint comes with a test that fails without it. CI runs both 
 yamllint, ruff and shellcheck, on every push to `main` and on pull requests from a branch here (not
 on AGit pull requests, as above).
 
+A change to the blueprint YAML is not code to the rules' tests-with-code check, which only knows
+source files, so the reviewer holds that line here: the PR names the test that fails without it.
+**Safety-critical code**: none. The blueprint only reads a power sensor and sets helpers.
+
 Note user-visible changes under `## [Unreleased]` in `CHANGELOG.md`; that section becomes the
 release notes.
+
+## Required checks
+
+The standard set from the rules, plus this repo's Tests workflow, under the exact names Forgejo
+reports:
+
+- `CI / Issue link (pull_request_target)`, `CI / Tests with code (pull_request_target)`,
+  `CI / Diff size (pull_request_target)`, `CI / Lint (pull_request_target)`,
+  `CI / Secrets (pull_request_target)` and `AI review`
+- `Tests / Lint and repository checks (pull_request)`,
+  `Tests / Test on Home Assistant floor (pull_request)` and
+  `Tests / Test on Home Assistant latest (pull_request)`
+
+Each is confirmed against a real PR's statuses before it is required.
+
+## Break-glass
+
+As in the rules (rule 20). Here that means: the checks run on the runners above and the AI review
+on the house model behind them; nothing in this repo is urgent enough to merge without a
+check, so the usual answer is to wait. Run both test suites locally (above) before any merge made
+without the Tests workflow.
 
 ## Releasing
 

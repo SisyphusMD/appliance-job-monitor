@@ -8,6 +8,11 @@ rules:
   # The blueprint's release URL is one unbreakable token.
   line-length:
     max: 120
+    # Copies of SisyphusMD/project-rules' workflows: edited there, never here, and linted there.
+    ignore: |
+      .forgejo/workflows/ci.yml
+      .forgejo/workflows/ai-review.yml
+      .forgejo/workflows/issue-archive.yml
   # Workflows key their triggers on `on:`, which YAML 1.1 would read as a boolean.
   truthy:
     check-keys: false

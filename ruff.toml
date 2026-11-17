@@ -1,0 +1,3 @@
+# The copied project-rules scripts and the vendored packaging tools are linted in project-rules
+# under its own config; linting them here only reports rules that repo does not use.
+extend-exclude = [".forgejo/scripts", "packaging"]
