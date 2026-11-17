@@ -4,6 +4,26 @@ Bug reports, power traces from real appliances and fixes are all welcome. Please
 pull requests on [Forgejo](https://forgejo.bryantserver.com/SisyphusMD/appliance-job-monitor/issues), where you can sign in with your
 GitHub account. The [GitHub repository](https://github.com/SisyphusMD/appliance-job-monitor) is a read-only mirror.
 
+## Sending a change
+
+A new account waits for a maintainer to activate it. Once it is active you can open issues, and
+send a pull request with [AGit](https://forgejo.org/docs/latest/user/git-cli/agit-support/): new
+accounts cannot create repositories, so there is no fork. Clone this repository from Forgejo (the
+GitHub mirror cannot take the push), commit on a branch, and push it as a pull request against
+`main`:
+
+```sh
+git clone https://forgejo.bryantserver.com/SisyphusMD/appliance-job-monitor.git
+git push origin HEAD:refs/for/main -o topic=<short-name>
+```
+
+A GitHub sign-in has no Forgejo password, so push over HTTPS with an access token from your
+Forgejo settings. Push again with the same topic to update the pull request.
+
+CI runs on this project's own runners, which are also trusted with its release credentials, so it
+does not run on a pull request sent this way. A maintainer reads the change, then opens it again as
+a pull request from a branch here, which runs the full suite.
+
 ## Written from scratch
 
 This blueprint replaces the
@@ -24,7 +44,8 @@ packaging/run-tests.sh floor
 ```
 
 A change to the blueprint comes with a test that fails without it. CI runs both suites, plus
-yamllint, ruff and shellcheck, on every push and pull request.
+yamllint, ruff and shellcheck, on every push to `main` and on pull requests from a branch here (not
+on AGit pull requests, as above).
 
 Note user-visible changes under `## [Unreleased]` in `CHANGELOG.md`; that section becomes the
 release notes.
