@@ -26,9 +26,10 @@ git push origin HEAD:refs/for/main -o topic=<short-name>
 A GitHub sign-in has no Forgejo password, so push over HTTPS with an access token from your
 Forgejo settings. Push again with the same topic to update the pull request.
 
-CI runs on this project's own runners, which are also trusted with its release credentials, so it
-does not run on a pull request sent this way. A maintainer reads the change, then opens it again as
-a pull request from a branch here, which runs the full suite.
+The `Tests` workflow skips AGit and fork pull requests. A maintainer reads
+the change, pushes it to a branch here and opens a pull request from that
+branch to run the full suite. The rules' metadata checks use the workflows
+on `main` and read the proposed changes as data.
 
 ## Written from scratch
 
@@ -51,7 +52,7 @@ packaging/run-tests.sh floor
 
 A change to the blueprint comes with a test that fails without it. CI runs both suites, plus
 yamllint, ruff and shellcheck, on every push to `main` and on pull requests from a branch here (not
-on AGit pull requests, as above).
+on AGit or fork pull requests, as above).
 
 A change to the blueprint YAML is not code to the rules' tests-with-code check, which only knows
 source files, so the reviewer holds that line here: the PR names the test that fails without it.

@@ -6,6 +6,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- CI checks that every pull-request test job keeps its AGit and fork trust gate (#12).
 - Pull requests opened on the GitHub mirror are closed with a pointer to Forgejo, where this
   repo takes them (#5).
 - The test suite fails unless some test takes every trigger, condition branch and state
