@@ -6,6 +6,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Pull requests opened on the GitHub mirror are closed with a pointer to Forgejo, where this
+  repo takes them (#5).
 - The test suite fails unless some test takes every trigger, condition branch and state
   transition in the blueprint, read from Home Assistant's own run traces (#7).
 - The repo follows the SisyphusMD project rules: their required checks and AI review, issue
