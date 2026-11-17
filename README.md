@@ -7,8 +7,8 @@ paused or is abandoned, using nothing but the power reading of the smart plug it
 > [forgejo.bryantserver.com/SisyphusMD/appliance-job-monitor](https://forgejo.bryantserver.com/SisyphusMD/appliance-job-monitor).
 > The [GitHub copy](https://github.com/SisyphusMD/appliance-job-monitor) is a read-only mirror.
 > **Please file issues and pull requests on
-> [GitHub](https://github.com/SisyphusMD/appliance-job-monitor/issues).** The Forgejo repository
-> does not take external issues.
+> [Forgejo](https://forgejo.bryantserver.com/SisyphusMD/appliance-job-monitor/issues)**, where you can sign in with your GitHub account.
+> The GitHub mirror does not take issues or pull requests.
 
 ## What it does
 
