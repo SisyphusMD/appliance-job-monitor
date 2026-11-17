@@ -7,6 +7,7 @@
   "platformAutomerge": false,
   "separateMinorPatch": true,
   "fetchChangeLogs": "pr",
+  "prFooter": "Refs #6: the standing issue for dependency updates, which the issue-link check requires every pull request to name.",
   "enabledManagers": ["github-actions", "pip_requirements", "custom.regex"],
   "github-actions": {
     "managerFilePatterns": ["/(\\.github|\\.forgejo)/workflows/.+\\.ya?ml$/"]
@@ -29,6 +30,11 @@
     }
   ],
   "packageRules": [
+    {
+      "description": "Copies of SisyphusMD/project-rules' gate workflows. Renovate bumps them there; a bump here would make the copy drift from the canonical file, so they change only by copying again.",
+      "matchFileNames": [".forgejo/workflows/ci.yml", ".forgejo/workflows/ai-review.yml", ".forgejo/workflows/issue-archive.yml"],
+      "enabled": false
+    },
     {
       "description": "Automerge patch, minor and digest updates once CI is green. The Home Assistant harness bump is the one that matters: CI runs the whole suite against the new release, so a green run is the evidence the blueprint still works on it.",
       "matchUpdateTypes": ["patch", "minor", "digest"],

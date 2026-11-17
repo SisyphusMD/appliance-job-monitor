@@ -6,6 +6,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- The repo follows the SisyphusMD project rules: their required checks and AI review, issue
+  templates, a `SECURITY.md` for private vulnerability reports, and its own test workflow
+  renamed to `Tests` (#5).
+
 ## [0.1.0] - 2026-10-20
 
 ### Added
