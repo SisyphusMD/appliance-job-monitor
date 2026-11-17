@@ -55,6 +55,13 @@ on AGit pull requests, as above).
 
 A change to the blueprint YAML is not code to the rules' tests-with-code check, which only knows
 source files, so the reviewer holds that line here: the PR names the test that fails without it.
+The suite also enforces branch coverage of the blueprint itself (`tests/branch_coverage.py`): a
+full run fails, listing each one by line and trace path, unless some test's automation runs take
+every trigger, both outcomes of every `if` and every `condition` step in a sequence, and every
+`choose` option plus its default or no option matching. Only a whole-suite run from the
+repository root is checked, as CI runs it; one narrowed by paths, `-k`, `-m` or deselection, or
+with failing tests, ends by saying the coverage was not checked and why. A skipped test takes none
+of its branches.
 **Safety-critical code**: none. The blueprint only reads a power sensor and sets helpers.
 
 Note user-visible changes under `## [Unreleased]` in `CHANGELOG.md`; that section becomes the

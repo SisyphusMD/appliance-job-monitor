@@ -160,6 +160,26 @@ async def test_a_sensor_that_does_not_cut_power_resumes_once_it_clears(
     fired(calls, overload=1, job_resumed=1)
 
 
+async def test_power_that_falls_within_the_start_delay_after_a_trip_clears_does_not_resume(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance
+) -> None:
+    calls = await overload_monitor(
+        monitor, initial="job_ongoing", power=50, start_delay={"seconds": 5}, resume_grace={"seconds": 120}
+    )
+    set_overload(hass, "on")
+    await advance(60)
+
+    set_overload(hass, "off")
+    await advance(2)
+    set_power(hass, 0.5)
+    await advance(10)
+    assert state(hass) == "detached_overload"
+
+    await advance(120)
+    assert state(hass) == "idle"
+    fired(calls, overload=1, abandoned=1)
+
+
 async def test_power_returning_while_still_tripped_resumes_the_job(
     hass: HomeAssistant, monitor: Monitor, advance: Advance
 ) -> None:
@@ -378,3 +398,19 @@ async def test_power_already_flowing_when_a_trip_clears_on_an_unplugged_applianc
     await advance(300)
     assert state(hass) == "job_ongoing"
     fired(calls, unplugged=1, job_started=1)
+
+
+async def test_power_that_falls_within_the_start_delay_after_a_trip_clears_starts_no_job(
+    hass: HomeAssistant, monitor: Monitor, advance: Advance
+) -> None:
+    set_overload(hass, "on")
+    calls = await boot(hass, monitor, power=50, start_delay={"seconds": 5})
+    await advance(60)
+
+    set_overload(hass, "off")
+    await advance(2)
+    set_power(hass, 0.5)
+    await advance(300)
+
+    assert state(hass) == "idle"
+    fired(calls, unplugged=1)
