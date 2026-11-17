@@ -1,0 +1,347 @@
+[
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Step 1 of the GitHub runner exit. GitHub is a read-only mirror with no CI, so ci-pr.yml goes; Forgejo ci.yml already runs the same lint and both Home Assistant suites. The fork-gate comment no longer points at the deleted file. ci-pr.yml never ran on GitHub (0 runs).",
+  "closed_at": "2026-11-16T11:23:32-08:00",
+  "comments": [],
+  "created_at": "2026-11-16T09:56:20-08:00",
+  "head": "ci/drop-github-pr-ci",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "f54fc1700d098300fc14e468fdb2520c2889a075",
+  "merged": true,
+  "milestone": null,
+  "number": 1,
+  "reviews": [],
+  "state": "closed",
+  "title": "ci: drop the GitHub pull request workflow",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Forgejo now takes sign-ins with GitHub accounts, so issues and pull requests go there. Until now the README and CONTRIBUTING sent people to GitHub, which is only a read-only mirror.\n\nWhat the docs now say:\n- A new account waits for a maintainer to activate it.\n- New accounts can't create repositories, so there are no forks. Pull requests are AGit pushes: `git push origin HEAD:refs/for/main -o topic=…`, made from a Forgejo clone over HTTPS with an access token.\n- CI skips AGit pull requests, because the runners are trusted with release credentials (the guard from #3). A maintainer opens the change again from a branch here to run the full suite.\n\nThe push syntax was checked on a private repo, where it opened an AGit pull request (flow=1).",
+  "closed_at": "2026-11-16T18:19:46-08:00",
+  "comments": [],
+  "created_at": "2026-11-16T12:13:01-08:00",
+  "head": "refs/pull/2/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "2ed1c17ce825c99489ad9ce7af6b81bb1803402b",
+  "merged": true,
+  "milestone": null,
+  "number": 2,
+  "reviews": [],
+  "state": "closed",
+  "title": "docs: send issues and pull requests to Forgejo",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Forgejo treats an AGit pull request (pushed to `refs/for/main`, no fork needed) as untrusted and holds its runs for approval, but its payload reports this repository as the head (`head.repo.full_name == github.repository`), so the existing fork gate let it through. When a maintainer acts on an outsider's PR (reopen), Forgejo 17 runs this branch's workflows, with secrets, against the PR's commit (services/actions/trust.go). Outside contributors are about to be able to sign in with GitHub and open AGit PRs, so the gate now also requires `github.event.pull_request.flow == 0`.\n\nProof (throwaway SisyphusMD/agit-guard-proof-20261116): an AGit PR's payload has `flow=1` and head repo = base repo, and the gated job was skipped (run 37485); a branch PR has `flow=0` and the gated job ran (run 37486).\n\nOutside PRs get CI when a maintainer, after reading the diff, pushes the head to a branch here.\n\nThe condition is folded to stay under yamllint's 120-character limit.",
+  "closed_at": "2026-11-16T14:13:37-08:00",
+  "comments": [],
+  "created_at": "2026-11-16T12:39:58-08:00",
+  "head": "refs/pull/3/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "d7d765a118f8ab9e2ccb10e9ff8cf5e6b4099272",
+  "merged": true,
+  "milestone": null,
+  "number": 3,
+  "reviews": [],
+  "state": "closed",
+  "title": "ci: keep AGit pull requests off the self-hosted runner (they report this repo as their head, so the fork gate let them through, and a maintainer's reopen runs this branch's workflows with secrets)",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "## What and why\n\nSisyphusMD/project-standard is retired into SisyphusMD/project-rules (project-rules#22). This re-vendors from project-rules v0.2.0 and moves every pointer to it: `STANDARD.lock` (source repo, v0.2.0, 156f8c1), `release-pins.env` (`PROJECT_STANDARD=\"0.2.0\"`, `depName=SisyphusMD/project-rules`), the `.renovaterc.json` package rule, and the CONTRIBUTING, VARIANCE and CI comment links.\n\nThe pin was still at 0.1.28, so this also catches up nine releases. For the 16 files this repo takes, that is: `revendor-standard.sh` (bounded clone with a watchdog, and the new repo URL), `gitignore.base` (release and smoke output patterns, now added to `.gitignore`), and the drift message in `check-standard-sync.py`. Same change landed in SisyphusMD/whiskerless#177 and SisyphusMD/dreame-valetudo#279.\n\n## Checks\n\n- `check-standard-sync.py`: 16 files match v0.2.0\n- `check-gitignore-base.py`, `check-doc-links.py`, `shellcheck-all.sh`, `yamllint --strict`: pass\n- pytest: 98 passed\n- No regression test: no behaviour change in this repo's own code.",
+  "closed_at": "2026-11-16T17:51:58-08:00",
+  "comments": [],
+  "created_at": "2026-11-16T16:43:26-08:00",
+  "head": "refs/pull/4/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "b3fa225a21007ffb47741c9be3c31cbbe1fdd003",
+  "merged": true,
+  "milestone": null,
+  "number": 4,
+  "reviews": [],
+  "state": "closed",
+  "title": "chore: vendor the shared standard from SisyphusMD/project-rules 0.2.0",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "body": "Tracked in SisyphusMD/project-rules#73. Add the rules' gate workflows (issue link, tests with code, diff size, lint, secrets, AI review), the nightly issue archive, issue templates and labels, a synced .forgejo/RULES.md, and the CONTRIBUTING.md sections the template asks for. This repo's own CI moves to tests.yml so the rules' ci.yml can sit beside it, as in project-rules. Protection then requires each check once a PR has proven it.",
+  "closed_at": null,
+  "comments": [
+   {
+    "body": "Protection order (no required checks exist here yet, so nothing goes stale): merge the adoption PR with this repo's own Tests green (the rules' gates run from main via pull_request_target, so they cannot run on the PR that adds them). On the next PR, prove each new check passes once and fails once, then require the six standard contexts (CI / Issue link, Tests with code, Diff size, Lint, Secrets, AI review) plus Tests / Lint and repository checks and both Test on Home Assistant legs. Waiting on SisyphusMD/project-rules#77 so the .forgejo/RULES.md copy passes the doc-link check.",
+    "created_at": "2026-11-17T08:41:41-08:00",
+    "id": 35893,
+    "updated_at": "2026-11-17T08:41:41-08:00",
+    "user": "cody"
+   },
+   {
+    "body": "Protecting main waits on SisyphusMD/project-rules#86: the Release workflow pushes the changelog commit straight to main, so protection would break releases. Also open from review: SisyphusMD/project-rules#85 and #87 (CI hardening in the copied workflows), and #7 here (blueprint coverage).",
+    "created_at": "2026-11-17T11:12:37-08:00",
+    "id": 36054,
+    "updated_at": "2026-11-17T11:12:37-08:00",
+    "user": "cody"
+   },
+   {
+    "body": "Proof, pass half: PR #9 ran every required check under the exact names in CONTRIBUTING.md and all passed (CI / Issue link, Tests with code, Diff size, Lint, Secrets (pull_request_target); AI review; Tests / Lint and repository checks, Test on Home Assistant floor, Test on Home Assistant latest (pull_request)). Still to do: one deliberate failure per gate, then protect main once SisyphusMD/project-rules#86 lands. Also to add: .github/workflows/mirror-lockdown.yml (SisyphusMD/project-rules#89) with Actions enabled on the GitHub copy.",
+    "created_at": "2026-11-17T12:23:50-08:00",
+    "id": 36157,
+    "updated_at": "2026-11-17T12:23:50-08:00",
+    "user": "cody"
+   },
+   {
+    "body": "Proof, fail half so far: on PR #10, `CI / Issue link (pull_request_target)` failed with no issue in the description, and `AI review` blocked on rule 6 (Refs instead of Closes); both passed once fixed. Still to see fail: Tests with code, Diff size, Lint, Secrets, and the three Tests jobs. Mirror lockdown merged (#11) and GitHub Actions on, limited to that action, SHA pinning required, read-only token.",
+    "created_at": "2026-11-17T12:39:09-08:00",
+    "id": 36196,
+    "updated_at": "2026-11-17T12:39:09-08:00",
+    "user": "cody"
+   },
+   {
+    "body": "Local fixture proof succeeded for all seven remaining failure paths: Tests with code, Diff size, Lint, Secrets, repository lint and the Home Assistant floor and latest jobs. Used a synthetic secret marker and malformed blueprint in a temporary repository. The required hosted PR proof still needs to run before enabling protection, after the release path is safe.",
+    "created_at": "2026-11-17T14:59:28-08:00",
+    "id": 36620,
+    "updated_at": "2026-11-17T14:59:28-08:00",
+    "user": "cody"
+   }
+  ],
+  "created_at": "2026-11-17T08:34:03-08:00",
+  "kind": "issue",
+  "labels": [
+   "status:in-progress",
+   "type:chore"
+  ],
+  "milestone": null,
+  "number": 5,
+  "state": "open",
+  "title": "Bring this repo under the project rules",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "body": "Standing issue every Renovate pull request references (`Refs #n` in its footer), so dependency updates pass the issue-link check without an issue per bump. Stays open.",
+  "closed_at": null,
+  "comments": [],
+  "created_at": "2026-11-17T08:34:28-08:00",
+  "kind": "issue",
+  "labels": [
+   "status:ready",
+   "type:chore"
+  ],
+  "milestone": null,
+  "number": 6,
+  "state": "open",
+  "title": "Dependency updates (Renovate)",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "body": "Rule 13 asks for 99% coverage (100% on safety-critical code). The Tests workflow runs both Home Assistant suites, but nothing measures coverage of the blueprint's YAML and templates, and naming a failing test per PR is not a coverage measure.\n\nOptions: define and gate a blueprint-appropriate measure (for example, every trigger, condition branch and state transition exercised by a named test, checked by a script), or record an exception in the project-rules Exceptions table. Found by review during adoption (#5).",
+  "closed_at": "2026-11-17T12:23:33-08:00",
+  "comments": [
+   {
+    "body": "Decision: Gate blueprint coverage with a script in CI: every trigger, condition branch and state transition in the blueprint must be exercised by a named test, or CI fails. Why: Real enforcement that matches the coverage rule, rather than loosening it with an exception.\n\nDecided by: Cody, 2026-11-17.",
+    "created_at": "2026-11-17T11:40:42-08:00",
+    "id": 36102,
+    "updated_at": "2026-11-17T11:40:42-08:00",
+    "user": "cody"
+   }
+  ],
+  "created_at": "2026-11-17T11:12:31-08:00",
+  "kind": "issue",
+  "labels": [
+   "status:ready",
+   "type:decision"
+  ],
+  "milestone": null,
+  "number": 7,
+  "state": "closed",
+  "title": "How the blueprint meets the coverage rule",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Refs #5 (stays open: main is protected only after the new checks are proven on the next PR, and after SisyphusMD/project-rules#86, since the Release workflow pushes straight to main).\n\nThis repo ran its own tests but none of the project rules' gates. It now carries them, copied verbatim from project-rules main 664d0e7:\n\n- `ci.yml` (Issue link, Tests with code, Diff size, Lint, Secrets), `ai-review.yml`, `issue-archive.yml`, `.forgejo/scripts/`, the issue templates, and `RULES.md` as `.forgejo/RULES.md` for the AI review.\n- The repo's own workflow is renamed `ci.yml` to `tests.yml` (`name: Tests`) so the two don't collide; `release.yml`'s comment follows.\n- `SECURITY.md` from the template; CONTRIBUTING points at the rules, notes rule 9 (no AI attribution), and lists the required checks under the exact names Forgejo reports, plus break-glass.\n- `ruff.toml` excludes the copied scripts and vendored `packaging/`: ruff 0.17's defaults flag them and the copied Lint job runs `ruff check .` (SisyphusMD/project-rules#85). Renovate ignores the copied workflows, which change only by re-copying.\n\nThe `pull_request_target` gates run from the base, so they don't run on this PR. They are proven on the next one (one pass, one deliberate failure) before they are required.\n\nChecked locally: 98 tests pass, yamllint strict, CI's pinned ruff 0.17.5 in a clean venv, shellcheck, doc links, standard sync.\n\nLarge diff: about 1,100 lines are verbatim copies of project-rules files (scripts, workflows, rules text, templates); the repo-specific change is under 100 lines.\n\nFollow-ups from review: SisyphusMD/project-rules#86 and #87, and #7 here (blueprint coverage).",
+  "closed_at": "2026-11-17T11:19:26-08:00",
+  "comments": [],
+  "created_at": "2026-11-17T11:18:04-08:00",
+  "head": "refs/pull/8/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "642417018e5c759221de5f5a6b283901f0cc9151",
+  "merged": true,
+  "milestone": null,
+  "number": 8,
+  "reviews": [],
+  "state": "closed",
+  "title": "ci: adopt the SisyphusMD project rules",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Closes #7\n\nThe rules ask for coverage, and nothing measured it for the blueprint: a branch could go untested without anyone noticing. Now a whole-suite test run fails unless every branch in the blueprint is taken by some test.\n\nHow: `tests/branch_coverage.py` lists the blueprint's branches from its YAML (each trigger by index, both outcomes of every `if`, each `choose` option plus \"nothing matched\", and each `condition` step passing and stopping). `conftest.py` keeps every automation run's Home Assistant trace and records the step paths and outcomes each test took. At the end of a full run, any branch nothing took is listed by blueprint line and the run fails. A run that cannot be judged (paths given, tests deselected or failed, collect-only) says \"Blueprint branch coverage NOT checked\" and why, so it never looks like a pass. A \"nothing matched\" outcome counts only from a run that finished, not one stopped mid-step. `repeat`, `parallel`, `while` and `until` raise, so a new construct cannot slip past uncounted.\n\nIt found two real gaps, both now tested: an overload that clears while power is high but drops within the start delay, on a paused job and on an unplugged appliance (`test_power_that_falls_within_the_start_delay_after_a_trip_clears_*`). Each new test fails when its condition is forced.\n\nProof it fails: with `test_a_sensor_that_does_not_cut_power_resumes_once_it_clears` skipped, both floor (2024.10) and latest (2026.10) exit 1 with `line 475: action/2/choose/9/sequence/1 condition passing` and \"59 of 60 branches taken\". Unmodified, both print \"All 60 blueprint branches taken.\" with 100 passed.",
+  "closed_at": "2026-11-17T12:23:33-08:00",
+  "comments": [
+   {
+    "body": "<!-- ai-review -->\n**AI review** of `b116f1fbd3`: Well-designed branch coverage enforcement for the blueprint YAML, correctly reading HA run traces and gating on whole-suite runs. The two new tests cover real gaps the checker found, docs are updated in the same PR, and the implementation correctly handles all step types the blueprint uses.\n\nNo findings.\n\nDisagree? Reply on this PR with your reasoning; the reviewer re-reads every reply.\n<!-- ai-review-state W10= -->",
+    "created_at": "2026-11-17T12:22:56-08:00",
+    "id": 36153,
+    "updated_at": "2026-11-17T12:22:56-08:00",
+    "user": "forgejo-actions"
+   }
+  ],
+  "created_at": "2026-11-17T12:19:46-08:00",
+  "head": "refs/pull/9/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "44579d358bc98a42513a2ffc4228ee4ab807aef8",
+  "merged": true,
+  "milestone": null,
+  "number": 9,
+  "reviews": [],
+  "state": "closed",
+  "title": "test: fail CI when a blueprint branch has no test",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Closes #11\n\nPart of the adoption, #5.\n\nGitHub cannot turn pull requests off, so the read-only GitHub copy still takes them. `.github/workflows/mirror-lockdown.yml` closes and locks a new one with a pointer to this repo on Forgejo. It is a byte-identical copy of project-rules' file at bef02c1 (merged as SisyphusMD/project-rules#89, and proven there: a test PR on the GitHub copy was closed and locked within seconds). It runs only on GitHub under SisyphusMD, with only `pull-requests: write`, and runs no code from the PR. Issues are already off on the GitHub copy.\n\nRenovate leaves it alone like the other copied workflows; it changes only by copying again. After merge, Actions goes on for the GitHub copy, limited to this one action, SHA-pinned, with a read-only default token.\n\nNo tests: a copied workflow, tested in project-rules (`tests/test_mirror_lockdown.py`).\n\nAdoption proof (#5): this PR was opened without an issue link first, and `CI / Issue link (pull_request_target)` failed on it; this edit adds the link. The AI review then held the PR to rule 6's `Closes #n` form, so it closes #11, the lockdown's own issue, and #5 stays open until main is protected.\n",
+  "closed_at": "2026-11-17T12:38:23-08:00",
+  "comments": [
+   {
+    "body": "<!-- ai-review -->\n**AI review** of `263f80e9bc`: Clean, well-scoped PR adding a proven byte-identical copy of project-rules' mirror-lockdown workflow, with the necessary Renovate exclusion and changelog entry. No blocking issues found.\n\n### Withdrawn\n\n- **F1** (blocking, `.github/workflows/mirror-lockdown.yml:1`) PR description uses 'Refs #5' instead of 'Closes #5' (rule 6): The current description reads 'Closes #11' and 'Part of the adoption, #5.' Issue #11 is the specific issue this PR addresses; #5 is the umbrella adoption issue that stays open until other work lands. Rule 6 requires the PR to name its issue with 'Closes #n', and it does: 'Closes #11'. The 'Part of the adoption, #5' line is context, not a substitute for the closing keyword. The finding was based on a 'Refs #5' string that does not appear in the current description.\n  - Reviewer: Withdrawing: the description correctly uses 'Closes #11' for the issue this PR resolves. #5 is referenced as parent context, which is fine.\n\n### Resolved\n\n- **F2** (suggestion, `.github/workflows/mirror-lockdown.yml:1`) PR description does not follow rule 9 format: \n\n\nDisagree? Reply on this PR with your reasoning; the reviewer re-reads every reply.\n<!-- ai-review-state W3siaWQiOiAiRjEiLCAiZmlsZSI6ICIuZ2l0aHViL3dvcmtmbG93cy9taXJyb3ItbG9ja2Rvd24ueW1sIiwgImxpbmUiOiAxLCAic2V2ZXJpdHkiOiAiYmxvY2tpbmciLCAic3RhdHVzIjogIndpdGhkcmF3biIsICJ0aXRsZSI6ICJQUiBkZXNjcmlwdGlvbiB1c2VzICdSZWZzICM1JyBpbnN0ZWFkIG9mICdDbG9zZXMgIzUnIChydWxlIDYpIiwgImRldGFpbCI6ICJUaGUgY3VycmVudCBkZXNjcmlwdGlvbiByZWFkcyAnQ2xvc2VzICMxMScgYW5kICdQYXJ0IG9mIHRoZSBhZG9wdGlvbiwgIzUuJyBJc3N1ZSAjMTEgaXMgdGhlIHNwZWNpZmljIGlzc3VlIHRoaXMgUFIgYWRkcmVzc2VzOyAjNSBpcyB0aGUgdW1icmVsbGEgYWRvcHRpb24gaXNzdWUgdGhhdCBzdGF5cyBvcGVuIHVudGlsIG90aGVyIHdvcmsgbGFuZHMuIFJ1bGUgNiByZXF1aXJlcyB0aGUgUFIgdG8gbmFtZSBpdHMgaXNzdWUgd2l0aCAnQ2xvc2VzICNuJywgYW5kIGl0IGRvZXM6ICdDbG9zZXMgIzExJy4gVGhlICdQYXJ0IG9mIHRoZSBhZG9wdGlvbiwgIzUnIGxpbmUgaXMgY29udGV4dCwgbm90IGEgc3Vic3RpdHV0ZSBmb3IgdGhlIGNsb3Npbmcga2V5d29yZC4gVGhlIGZpbmRpbmcgd2FzIGJhc2VkIG9uIGEgJ1JlZnMgIzUnIHN0cmluZyB0aGF0IGRvZXMgbm90IGFwcGVhciBpbiB0aGUgY3VycmVudCBkZXNjcmlwdGlvbi4iLCAicmVzcG9uc2UiOiAiV2l0aGRyYXdpbmc6IHRoZSBkZXNjcmlwdGlvbiBjb3JyZWN0bHkgdXNlcyAnQ2xvc2VzICMxMScgZm9yIHRoZSBpc3N1ZSB0aGlzIFBSIHJlc29sdmVzLiAjNSBpcyByZWZlcmVuY2VkIGFzIHBhcmVudCBjb250ZXh0LCB3aGljaCBpcyBmaW5lLiJ9LCB7ImlkIjogIkYyIiwgImZpbGUiOiAiLmdpdGh1Yi93b3JrZmxvd3MvbWlycm9yLWxvY2tkb3duLnltbCIsICJsaW5lIjogMSwgInNldmVyaXR5IjogInN1Z2dlc3Rpb24iLCAic3RhdHVzIjogInJlc29sdmVkIiwgInRpdGxlIjogIlBSIGRlc2NyaXB0aW9uIGRvZXMgbm90IGZvbGxvdyBydWxlIDkgZm9ybWF0IiwgImRldGFpbCI6ICIiLCAicmVzcG9uc2UiOiAiIn1d -->",
+    "created_at": "2026-11-17T12:32:01-08:00",
+    "id": 36185,
+    "updated_at": "2026-11-17T12:38:03-08:00",
+    "user": "forgejo-actions"
+   }
+  ],
+  "created_at": "2026-11-17T12:30:40-08:00",
+  "head": "refs/pull/10/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "01056b3ba480325eb0421a64a75aa36499bf0df6",
+  "merged": true,
+  "milestone": null,
+  "number": 10,
+  "reviews": [],
+  "state": "closed",
+  "title": "ci: close pull requests opened on the GitHub mirror",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "body": "GitHub cannot turn pull requests off, so the read-only GitHub copy still takes them. Copy project-rules' `.github/workflows/mirror-lockdown.yml` (SisyphusMD/project-rules#88, #89) and turn Actions on for the GitHub copy, limited to that one action. Part of the adoption, #5.",
+  "closed_at": "2026-11-17T12:38:23-08:00",
+  "comments": [],
+  "created_at": "2026-11-17T12:35:15-08:00",
+  "kind": "issue",
+  "labels": [
+   "status:in-progress",
+   "type:feature"
+  ],
+  "milestone": null,
+  "number": 11,
+  "state": "closed",
+  "title": "Close pull requests opened on the GitHub mirror",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "body": "Follow-up to the AGit gate (`github.event.pull_request.flow == 0` beside the head-repository check) and SisyphusMD/project-rules#79.\n\n- Nothing tests the gate. Add a test that walks every job of every `pull_request`-triggered workflow under `.forgejo/workflows/` and fails unless its `if:` carries both clauses, with named exemptions and a reason for each. A job that loses its whole `if:` must fail it.\n- `CONTRIBUTING.md` says an AGit pull request gets no CI. It should say the same of a pull request from a fork.",
+  "closed_at": "2026-11-17T13:40:33-08:00",
+  "comments": [
+   {
+    "body": "Status: test and CONTRIBUTING change written and green locally (102 passed, all 60 blueprint branches), not committed: the commit review had not finished when the session was handed off. Next: qx review, commit, push branch ci/agit-guard-followups, open the PR.",
+    "created_at": "2026-11-17T13:24:52-08:00",
+    "id": 36276,
+    "updated_at": "2026-11-17T13:24:52-08:00",
+    "user": "cody"
+   },
+   {
+    "body": "Merged in #13 at 9bff38e. All ten Forgejo contexts, including AI review and both Home Assistant legs, passed on the exact head before merge. Default-branch protection remains tracked under #5 and project-rules #86.",
+    "created_at": "2026-11-17T13:41:20-08:00",
+    "id": 36392,
+    "updated_at": "2026-11-17T13:41:20-08:00",
+    "user": "cody"
+   }
+  ],
+  "created_at": "2026-11-17T13:11:50-08:00",
+  "kind": "issue",
+  "labels": [
+   "status:in-progress",
+   "type:chore"
+  ],
+  "milestone": null,
+  "number": 12,
+  "state": "closed",
+  "title": "Test the AGit and fork trust gate on every pull_request job",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Closes #12\n\nThe workflow test scans jobs in every `pull_request` workflow and checks the complete trust condition. It verifies the existing lint and test jobs were inspected, so a missing workflow or unrecognized trigger cannot silently pass.\n\nTests: a fixture rejects a job without an `if:`, a job missing either trust clause, and a job joining the clauses with OR. The existing blueprint suites still exercise all 60 branches.\n\nCONTRIBUTING describes the maintainer's branch PR process for AGit and fork contributions. The other repositories' guard changes are tracked separately in the follow-up to SisyphusMD/project-rules#79.\n",
+  "closed_at": "2026-11-17T13:40:32-08:00",
+  "comments": [
+   {
+    "body": "<!-- ai-review -->\n**AI review** of `297a87227a`: The PR adds a workflow guard test that walks every pull_request-triggered workflow and asserts each job carries both trust clauses (fork + AGit), with a fixture proving it catches missing/partial/OR-joined gates, and updates CONTRIBUTING.md to mention fork PRs alongside AGit. The implementation is correct, well-tested, and scoped to issue #12.\n\nNo findings.\n\nDisagree? Reply on this PR with your reasoning; the reviewer re-reads every reply.\n<!-- ai-review-state W10= -->",
+    "created_at": "2026-11-17T13:38:51-08:00",
+    "id": 36349,
+    "updated_at": "2026-11-17T13:38:51-08:00",
+    "user": "forgejo-actions"
+   }
+  ],
+  "created_at": "2026-11-17T13:37:11-08:00",
+  "head": "refs/pull/13/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "9bff38e572166e6cd69077125bbc41f09df1e028",
+  "merged": true,
+  "milestone": null,
+  "number": 13,
+  "reviews": [],
+  "state": "closed",
+  "title": "Check the AGit and fork gate on every pull-request job",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "body": "Part of SisyphusMD/project-rules#86. Keep the existing release qualification, open the changelog promotion as a pull request, then use a second maintainer dispatch to verify and tag exactly the merged release. Prove the preparation and tag-only stages before blocking direct pushes to main.\n\nDepends on SisyphusMD/project-rules#96.",
+  "closed_at": null,
+  "comments": [
+   {
+    "body": "Prepare Release and Publish Release are drafted. Both Home Assistant suites passed (103 tests and all 60 blueprint branches on each target). A local Git/API fixture proved candidate-only push, idempotent PR reuse and refusal when main moves during qualification. The shared helpers must be vendored together from the official project-rules v0.3.1 release after publication.",
+    "created_at": "2026-11-17T14:59:28-08:00",
+    "id": 36621,
+    "updated_at": "2026-11-17T14:59:28-08:00",
+    "user": "cody"
+   }
+  ],
+  "created_at": "2026-11-17T14:07:39-08:00",
+  "kind": "issue",
+  "labels": [
+   "status:blocked",
+   "type:feature"
+  ],
+  "milestone": null,
+  "number": 14,
+  "state": "open",
+  "title": "Release through a merged pull request",
+  "user": "cody"
+ }
+]
