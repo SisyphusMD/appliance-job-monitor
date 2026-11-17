@@ -31,8 +31,8 @@
   ],
   "packageRules": [
     {
-      "description": "Copies of SisyphusMD/project-rules' gate workflows. Renovate bumps them there; a bump here would make the copy drift from the canonical file, so they change only by copying again.",
-      "matchFileNames": [".forgejo/workflows/ci.yml", ".forgejo/workflows/ai-review.yml", ".forgejo/workflows/issue-archive.yml"],
+      "description": "Copies of SisyphusMD/project-rules' gate and mirror workflows. Renovate bumps them there; a bump here would make the copy drift from the canonical file, so they change only by copying again.",
+      "matchFileNames": [".forgejo/workflows/ci.yml", ".forgejo/workflows/ai-review.yml", ".forgejo/workflows/issue-archive.yml", ".github/workflows/mirror-lockdown.yml"],
       "enabled": false
     },
     {
