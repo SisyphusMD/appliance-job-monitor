@@ -78,7 +78,7 @@
  {
   "assignees": [],
   "body": "Tracked in SisyphusMD/project-rules#73. Add the rules' gate workflows (issue link, tests with code, diff size, lint, secrets, AI review), the nightly issue archive, issue templates and labels, a synced .forgejo/RULES.md, and the CONTRIBUTING.md sections the template asks for. This repo's own CI moves to tests.yml so the rules' ci.yml can sit beside it, as in project-rules. Protection then requires each check once a PR has proven it.",
-  "closed_at": null,
+  "closed_at": "2026-11-17T16:32:30-08:00",
   "comments": [
    {
     "body": "Protection order (no required checks exist here yet, so nothing goes stale): merge the adoption PR with this repo's own Tests green (the rules' gates run from main via pull_request_target, so they cannot run on the PR that adds them). On the next PR, prove each new check passes once and fails once, then require the six standard contexts (CI / Issue link, Tests with code, Diff size, Lint, Secrets, AI review) plus Tests / Lint and repository checks and both Test on Home Assistant legs. Waiting on SisyphusMD/project-rules#77 so the .forgejo/RULES.md copy passes the doc-link check.",
@@ -114,6 +114,27 @@
     "id": 36620,
     "updated_at": "2026-11-17T14:59:28-08:00",
     "user": "cody"
+   },
+   {
+    "body": "The first Issue archive dispatch (#42) succeeded. The issue-archive branch is c6a435fb5febd6c32b19639bc0725c48b2e79402 on the primary and annex.",
+    "created_at": "2026-11-17T15:06:41-08:00",
+    "id": 36655,
+    "updated_at": "2026-11-17T15:06:41-08:00",
+    "user": "cody"
+   },
+   {
+    "body": "Hosted release proof passed in #16. Prepare #49, changelog PR #17, Publish Release #54, asset publisher #55 and tag Tests #56 all passed. The remaining protection prerequisite is the hosted deliberate-failure PR.",
+    "created_at": "2026-11-17T15:27:12-08:00",
+    "id": 36701,
+    "updated_at": "2026-11-17T15:27:12-08:00",
+    "user": "cody"
+   },
+   {
+    "body": "Forgejo main protection is active and verified. It rejects direct pushes including admins, requires an up-to-date branch and the nine exact status contexts, and uses zero human approvals. Green proof: release PR #17. The eight deterministic failure paths failed for the intended reasons on disposable draft PR #18, which was closed without merging. AI review failure was verified in #10 status history. Appliance v0.1.1 proved the two-step release flow on primary and both mirrors. Renovate currently has read-only repo access. Prove its generated PRs per SisyphusMD/project-rules#68 before giving it write access.",
+    "created_at": "2026-11-17T16:32:30-08:00",
+    "id": 36736,
+    "updated_at": "2026-11-17T16:32:30-08:00",
+    "user": "cody"
    }
   ],
   "created_at": "2026-11-17T08:34:03-08:00",
@@ -124,7 +145,7 @@
   ],
   "milestone": null,
   "number": 5,
-  "state": "open",
+  "state": "closed",
   "title": "Bring this repo under the project rules",
   "user": "cody"
  },
@@ -322,7 +343,7 @@
  {
   "assignees": [],
   "body": "Part of SisyphusMD/project-rules#86. Keep the existing release qualification, open the changelog promotion as a pull request, then use a second maintainer dispatch to verify and tag exactly the merged release. Prove the preparation and tag-only stages before blocking direct pushes to main.\n\nDepends on SisyphusMD/project-rules#96.",
-  "closed_at": null,
+  "closed_at": "2026-11-17T15:13:19-08:00",
   "comments": [
    {
     "body": "Prepare Release and Publish Release are drafted. Both Home Assistant suites passed (103 tests and all 60 blueprint branches on each target). A local Git/API fixture proved candidate-only push, idempotent PR reuse and refusal when main moves during qualification. The shared helpers must be vendored together from the official project-rules v0.3.1 release after publication.",
@@ -340,8 +361,165 @@
   ],
   "milestone": null,
   "number": 14,
-  "state": "open",
+  "state": "closed",
   "title": "Release through a merged pull request",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Closes #14.\n\nPrepare Release qualifies the changelog promotion and opens a normal, issue-linked release PR. Publish Release checks that the merged PR matches the qualified tree and pushes only an annotated tag at that exact commit. The existing tag-triggered artifact publisher still attaches the blueprint to all three releases.\n\nVendors the verifier and tag-only publisher from project-rules v0.3.1. The local fixture covers branch-only preparation, cross-run reuse, refusal when main advances during qualification, tagging after main advances, and replay without changing main.\n\nValidated: 104 tests and all 60 blueprint branches on each Home Assistant target, YAML and Python lint, shellcheck, documentation links, standard lock, and Gitleaks.",
+  "closed_at": "2026-11-17T15:13:18-08:00",
+  "comments": [
+   {
+    "body": "<!-- ai-review -->\n**AI review** of `81c917c03b`: The PR restructures the release process into a two-step flow (Prepare Release opens a changelog PR; Publish Release verifies the merged PR and tags the exact commit). The implementation is sound: input validation, tree/commit verification, idempotent replay, and write-token isolation are all correct, and the local fixture covers the key scenarios described in the PR body.\n\nNo findings.\n\nDisagree? Reply on this PR with your reasoning; the reviewer re-reads every reply.\n<!-- ai-review-state W10= -->",
+    "created_at": "2026-11-17T15:12:48-08:00",
+    "id": 36670,
+    "updated_at": "2026-11-17T15:12:48-08:00",
+    "user": "forgejo-actions"
+   }
+  ],
+  "created_at": "2026-11-17T15:09:53-08:00",
+  "head": "refs/pull/15/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "2009c05e2a773ea9807fc4d8367e2e80d71b86e7",
+  "merged": true,
+  "milestone": null,
+  "number": 15,
+  "reviews": [],
+  "state": "closed",
+  "title": "Release through a merged pull request",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "body": "Cut the first patch release using the two-step Forgejo flow added in #15. Prepare the changelog PR, review and merge it, publish the exact merge by tag, and verify the blueprint assets on primary, annex and GitHub. The results inform the branch protection work in #5.",
+  "closed_at": "2026-11-17T15:25:19-08:00",
+  "comments": [
+   {
+    "body": "Decision by Cody (2026-11-17): “Yes” to publishing appliance-job-monitor v0.1.1 now to test the new release workflow. Codex is running the release.",
+    "created_at": "2026-11-17T15:23:32-08:00",
+    "id": 36692,
+    "updated_at": "2026-11-17T15:23:32-08:00",
+    "user": "cody"
+   },
+   {
+    "body": "Released v0.1.1 through the new hosted workflow. Prepare Release #49 created changelog-only PR #17 without changing main or creating the tag. After green CI and normal merge, Publish Release #54 tagged the exact merge at 4286feb00c0627d6070163bc1e3e8dc8b607fa29. Publish #55 and tag Tests #56 passed. Primary, annex and GitHub have the same annotated tag and both blueprint uploads match SHA-256 85005a60ffd46649a3cf3e534e81af7ddbadcb68f04d05709b311642d10c5d79. The release branch has been pruned.",
+    "created_at": "2026-11-17T15:27:12-08:00",
+    "id": 36699,
+    "updated_at": "2026-11-17T15:27:12-08:00",
+    "user": "cody"
+   }
+  ],
+  "created_at": "2026-11-17T15:23:32-08:00",
+  "kind": "issue",
+  "labels": [
+   "status:in-progress",
+   "type:chore"
+  ],
+  "milestone": null,
+  "number": 16,
+  "state": "closed",
+  "title": "Release appliance-job-monitor v0.1.1",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Closes #16. The prepared changelog passed the release qualification.",
+  "closed_at": "2026-11-17T15:25:19-08:00",
+  "comments": [
+   {
+    "body": "<!-- ai-review -->\n**AI review** of `97d5028082`: Standard changelog promotion for v0.1.1: two lines added to move the existing Unreleased entries under a dated version heading. Minimal, correct, and matches the release flow described in CONTRIBUTING.md.\n\nNo findings.\n\nDisagree? Reply on this PR with your reasoning; the reviewer re-reads every reply.\n<!-- ai-review-state W10= -->",
+    "created_at": "2026-11-17T15:24:23-08:00",
+    "id": 36695,
+    "updated_at": "2026-11-17T15:24:23-08:00",
+    "user": "forgejo-actions"
+   }
+  ],
+  "created_at": "2026-11-17T15:24:14-08:00",
+  "head": "refs/pull/17/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "4286feb00c0627d6070163bc1e3e8dc8b607fa29",
+  "merged": true,
+  "milestone": null,
+  "number": 17,
+  "reviews": [],
+  "state": "closed",
+  "title": "Release v0.1.1",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Disposable hosted failure proof. The issue link is omitted from this description to test the issue-link gate. Close this draft after recording CI. This fixture must never be merged.",
+  "closed_at": "2026-11-17T16:31:52-08:00",
+  "comments": [
+   {
+    "body": "<!-- ai-review -->\n**AI review** of `b0bf6efcf9`: This is a draft PR explicitly designed as a disposable fixture to verify that the CI gates (Issue link, Secrets, Diff size, Lint) correctly reject invalid input. The intentional corruptions (broken YAML, synthetic secret, 411-line padding) are the point of the PR, not defects. The PR states it must never be merged and should be closed after recording CI results.\n\n### Open\n\n- **F1** (suggestion, `gate_fixture.py:1`) CI gate test fixture has no tracking issue: Rule 1 says 'No work without an issue' and rule 6 requires every PR to name its issue. Even a disposable CI-gate test should have a short issue (e.g. 'Verify required checks reject invalid input') so the CI results are recorded against something and the fixture's purpose is traceable. Add `Closes #n` once the issue exists, or at minimum reference the issue number in the description. This is a suggestion rather than blocking because the PR is a draft that will never merge and the missing link is itself the thing being tested.\n\n\nDisagree? Reply on this PR with your reasoning; the reviewer re-reads every reply.\n<!-- ai-review-state W3siaWQiOiAiRjEiLCAiZmlsZSI6ICJnYXRlX2ZpeHR1cmUucHkiLCAibGluZSI6IDEsICJzZXZlcml0eSI6ICJzdWdnZXN0aW9uIiwgInN0YXR1cyI6ICJvcGVuIiwgInRpdGxlIjogIkNJIGdhdGUgdGVzdCBmaXh0dXJlIGhhcyBubyB0cmFja2luZyBpc3N1ZSIsICJkZXRhaWwiOiAiUnVsZSAxIHNheXMgJ05vIHdvcmsgd2l0aG91dCBhbiBpc3N1ZScgYW5kIHJ1bGUgNiByZXF1aXJlcyBldmVyeSBQUiB0byBuYW1lIGl0cyBpc3N1ZS4gRXZlbiBhIGRpc3Bvc2FibGUgQ0ktZ2F0ZSB0ZXN0IHNob3VsZCBoYXZlIGEgc2hvcnQgaXNzdWUgKGUuZy4gJ1ZlcmlmeSByZXF1aXJlZCBjaGVja3MgcmVqZWN0IGludmFsaWQgaW5wdXQnKSBzbyB0aGUgQ0kgcmVzdWx0cyBhcmUgcmVjb3JkZWQgYWdhaW5zdCBzb21ldGhpbmcgYW5kIHRoZSBmaXh0dXJlJ3MgcHVycG9zZSBpcyB0cmFjZWFibGUuIEFkZCBgQ2xvc2VzICNuYCBvbmNlIHRoZSBpc3N1ZSBleGlzdHMsIG9yIGF0IG1pbmltdW0gcmVmZXJlbmNlIHRoZSBpc3N1ZSBudW1iZXIgaW4gdGhlIGRlc2NyaXB0aW9uLiBUaGlzIGlzIGEgc3VnZ2VzdGlvbiByYXRoZXIgdGhhbiBibG9ja2luZyBiZWNhdXNlIHRoZSBQUiBpcyBhIGRyYWZ0IHRoYXQgd2lsbCBuZXZlciBtZXJnZSBhbmQgdGhlIG1pc3NpbmcgbGluayBpcyBpdHNlbGYgdGhlIHRoaW5nIGJlaW5nIHRlc3RlZC4iLCAicmVzcG9uc2UiOiAiIn1d -->",
+    "created_at": "2026-11-17T16:29:41-08:00",
+    "id": 36732,
+    "updated_at": "2026-11-17T16:31:01-08:00",
+    "user": "forgejo-actions"
+   }
+  ],
+  "created_at": "2026-11-17T16:29:29-08:00",
+  "head": "proof/required-check-failures",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": null,
+  "merged": false,
+  "milestone": null,
+  "number": 18,
+  "reviews": [],
+  "state": "closed",
+  "title": "WIP: Prove required CI checks reject invalid input",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "body": "Part of SisyphusMD/project-rules#99. Record the exact commit prepared by the qualification workflow, and verify that successful run still applies to the final merged release PR head before creating a new tag. Preserve safe retries of the already published v0.1.1 tag.",
+  "closed_at": "2026-11-17T19:12:09-08:00",
+  "comments": [],
+  "created_at": "2026-11-17T18:59:20-08:00",
+  "kind": "issue",
+  "labels": [
+   "status:in-progress",
+   "type:bug"
+  ],
+  "milestone": null,
+  "number": 19,
+  "state": "closed",
+  "title": "Bind release publication to the original qualified commit",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Closes #19.\n\nRecord the exact head that passed Prepare Release, then bind publication to the successful dispatch’s candidate record. Retry the already-published v0.1.1 only when the exact primary tag exists and its merge still verifies.\n\nThe release fixture rejects an incorrect qualification record even when a similarly named branch exists, and proves exact tag-only publication and legacy retry. Both Home Assistant dependency targets passed the full suite before the narrow exact-ref fix and both passed the focused release fixtures afterwards.",
+  "closed_at": "2026-11-17T19:12:09-08:00",
+  "comments": [
+   {
+    "body": "<!-- ai-review -->\n**AI review** of `90f49b7dc3`: The PR correctly binds release publication to the exact qualified commit by verifying a commit status, workflow run metadata, and job log content before tagging, with a safe retry path for already-published tags. Tests cover the happy path, rejection of a wrong qualification, and the legacy retry path.\n\nNo findings.\n\nDisagree? Reply on this PR with your reasoning; the reviewer re-reads every reply.\n<!-- ai-review-state W10= -->",
+    "created_at": "2026-11-17T19:11:02-08:00",
+    "id": 36881,
+    "updated_at": "2026-11-17T19:11:02-08:00",
+    "user": "forgejo-actions"
+   }
+  ],
+  "created_at": "2026-11-17T19:08:22-08:00",
+  "head": "refs/pull/20/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "c36cffcee533226fddb93285467c632aff9e95b7",
+  "merged": true,
+  "milestone": null,
+  "number": 20,
+  "reviews": [],
+  "state": "closed",
+  "title": "Verify the exact Appliance release candidate before tagging",
   "user": "cody"
  }
 ]

@@ -1,6 +1,6 @@
 # #14 Release through a merged pull request
 
-- Kind: issue, state: open, by cody, created 2026-11-17T14:07:39-08:00
+- Kind: issue, state: closed, by cody, created 2026-11-17T14:07:39-08:00
 - Labels: status:blocked, type:feature; milestone: none
 
 Part of SisyphusMD/project-rules#86. Keep the existing release qualification, open the changelog promotion as a pull request, then use a second maintainer dispatch to verify and tag exactly the merged release. Prove the preparation and tag-only stages before blocking direct pushes to main.

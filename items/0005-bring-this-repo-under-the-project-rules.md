@@ -1,6 +1,6 @@
 # #5 Bring this repo under the project rules
 
-- Kind: issue, state: open, by cody, created 2026-11-17T08:34:03-08:00
+- Kind: issue, state: closed, by cody, created 2026-11-17T08:34:03-08:00
 - Labels: status:in-progress, type:chore; milestone: none
 
 Tracked in SisyphusMD/project-rules#73. Add the rules' gate workflows (issue link, tests with code, diff size, lint, secrets, AI review), the nightly issue archive, issue templates and labels, a synced .forgejo/RULES.md, and the CONTRIBUTING.md sections the template asks for. This repo's own CI moves to tests.yml so the rules' ci.yml can sit beside it, as in project-rules. Protection then requires each check once a PR has proven it.
@@ -24,3 +24,15 @@ Proof, fail half so far: on PR #10, `CI / Issue link (pull_request_target)` fail
 ## cody, 2026-11-17T14:59:28-08:00
 
 Local fixture proof succeeded for all seven remaining failure paths: Tests with code, Diff size, Lint, Secrets, repository lint and the Home Assistant floor and latest jobs. Used a synthetic secret marker and malformed blueprint in a temporary repository. The required hosted PR proof still needs to run before enabling protection, after the release path is safe.
+
+## cody, 2026-11-17T15:06:41-08:00
+
+The first Issue archive dispatch (#42) succeeded. The issue-archive branch is c6a435fb5febd6c32b19639bc0725c48b2e79402 on the primary and annex.
+
+## cody, 2026-11-17T15:27:12-08:00
+
+Hosted release proof passed in #16. Prepare #49, changelog PR #17, Publish Release #54, asset publisher #55 and tag Tests #56 all passed. The remaining protection prerequisite is the hosted deliberate-failure PR.
+
+## cody, 2026-11-17T16:32:30-08:00
+
+Forgejo main protection is active and verified. It rejects direct pushes including admins, requires an up-to-date branch and the nine exact status contexts, and uses zero human approvals. Green proof: release PR #17. The eight deterministic failure paths failed for the intended reasons on disposable draft PR #18, which was closed without merging. AI review failure was verified in #10 status history. Appliance v0.1.1 proved the two-step release flow on primary and both mirrors. Renovate currently has read-only repo access. Prove its generated PRs per SisyphusMD/project-rules#68 before giving it write access.
