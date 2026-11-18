@@ -94,9 +94,10 @@ without the Tests workflow.
 Run **Prepare Release** on Forgejo from `main`. Choose a version bump and supply the
 release issue number. The workflow runs both test suites and opens a PR with the
 changelog promotion. Merge it after the required checks pass and while it is up to
-date with `main`. If `main` moved, close the stale PR, delete its release branch,
-and run **Prepare Release** again with the same issue. If it already merged,
-revert the changelog promotion through a PR before preparing again.
+date with `main`. Updating the prepared head invalidates its qualification. If
+`main` moved, close the stale PR, delete its release branch, and run **Prepare Release**
+again with the same issue. If it already merged, revert the changelog promotion
+through a PR before preparing again.
 
 When ready to publish, run **Publish Release** from `main` with the merged PR number.
 It tags that exact merged commit. The tag runs Publish, which attaches the blueprint

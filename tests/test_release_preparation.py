@@ -42,6 +42,11 @@ log = pathlib.Path(os.environ["CREATED"])
 if args[-1].endswith("/issues/7"):
     assert "Authorization: token issue-reader" in args
     print('{"state":"open","pull_request":null}')
+elif "/statuses/" in args[-1]:
+    assert args[-1].endswith("/" + os.environ["CANDIDATE"])
+    status = json.loads(args[args.index("--data") + 1])
+    assert status["context"] == "Release / Qualified candidate"
+    assert status["target_url"].endswith("/actions/runs/42")
 elif "--get" in args:
     assert "state=open" in args and "head=release/v1.2.3" in args
     if log.exists():
@@ -74,7 +79,7 @@ else:
     )
     env = dict(
         os.environ, PATH=f"{fake_bin}:{os.environ['PATH']}", CREATED=str(log), TAG="v1.2.3",
-        CANDIDATE=candidate,
+        CANDIDATE=candidate, GITHUB_RUN_NUMBER="42",
         ISSUE="7", ISSUE_TOKEN="issue-reader", TOKEN="stub", GITHUB_SERVER_URL="https://forge.example.test",
         GITHUB_REPOSITORY="Owner/Project",
     )
@@ -83,7 +88,9 @@ else:
             ["bash", "-c", script], cwd=repo, env=env, capture_output=True, text=True, check=False,
         )
         assert result.returncode == 0, result.stderr
-        assert result.stdout.strip() == "https://forge.example.test/Owner/Project/pulls/8"
+        assert result.stdout.splitlines() == [
+            f"Qualified release commit: {candidate}", "https://forge.example.test/Owner/Project/pulls/8",
+        ]
 
     assert git("ls-remote", "origin", "refs/heads/main") == f"{original}\trefs/heads/main"
     assert git("ls-remote", "origin", "refs/heads/release/v1.2.3") == (
@@ -126,6 +133,7 @@ def test_publish_workflow_tags_the_verified_merge_when_main_has_advanced(tmp_pat
         (packaging / name).write_bytes((ROOT / "packaging" / name).read_bytes())
     git("add", "packaging")
     git("commit", "-m", "Base")
+    base = git("rev-parse", "HEAD")
     branch = "release/v1.2.3"
     git("checkout", "-b", branch)
     (repo / "CHANGELOG.md").write_text("## [Unreleased]\n\n## [1.2.3] - 2026-11-17\n")
@@ -152,8 +160,29 @@ def test_publish_workflow_tags_the_verified_merge_when_main_has_advanced(tmp_pat
     fake_bin.mkdir()
     curl = fake_bin / "curl"
     curl.write_text(
-        '#!/bin/sh\nfor arg do last=$arg; done\n'
-        'case "$last" in */pulls/8) cat "$PAYLOAD";; */push_mirrors-sync) exit 0;; *) exit 1;; esac\n'
+        """#!/usr/bin/env python3
+import json, os, pathlib, sys
+
+endpoint = sys.argv[-1]
+if endpoint.endswith("/pulls/8"):
+    print(pathlib.Path(os.environ["PAYLOAD"]).read_text())
+elif "/status?" in endpoint:
+    url = "https://forge.example.test/Owner/Project/actions/runs/42"
+    qualified = {"context": "Release / Qualified candidate", "status": "success", "target_url": url}
+    print(json.dumps({"statuses": [qualified]}))
+elif endpoint.endswith("run_number=42"):
+    print(json.dumps({"workflow_runs": [{
+        "id": 100, "workflow_id": "release.yml", "status": "success",
+        "trigger_event": "workflow_dispatch", "commit_sha": os.environ["BASE"],
+        "event_payload": json.dumps({"ref": "refs/heads/main"}),
+    }]}))
+elif endpoint.endswith("/runs/100/jobs"):
+    print('[{"name":"Open the qualified release PR","status":"success","id":101}]')
+elif endpoint.endswith("/jobs/101/logs"):
+    print("Qualified release commit: " + os.environ["QUALIFIED"])
+elif not endpoint.endswith("/push_mirrors-sync"):
+    sys.exit("unexpected request")
+"""
     )
     sleep = fake_bin / "sleep"
     sleep.write_text("#!/bin/sh\nexit 0\n")
@@ -164,9 +193,17 @@ def test_publish_workflow_tags_the_verified_merge_when_main_has_advanced(tmp_pat
         os.environ, PATH=f"{fake_bin}:{os.environ['PATH']}", PAYLOAD=str(payload),
         PR="8", TOKEN="stub", GITHUB_SERVER_URL="https://forge.example.test",
         GITHUB_REPOSITORY=slug, GITHUB_OUTPUT=str(output),
+        BASE=base, QUALIFIED=candidate,
     )
     workflow = yaml.safe_load((ROOT / ".forgejo/workflows/publish-release.yml").read_text())
     verify, publish = [step["run"] for step in workflow["jobs"]["publish"]["steps"] if "run" in step]
+    git("push", "origin", "HEAD:refs/heads/fixture/refs/tags/v1.2.3")
+    rejected = subprocess.run(
+        ["bash", "-c", verify], cwd=repo, env=dict(env, QUALIFIED=base), text=True, capture_output=True, check=False,
+    )
+    assert rejected.returncode != 0
+    assert "did not produce this candidate" in rejected.stdout
+    assert not output.exists()
     subprocess.run(["bash", "-c", verify], cwd=repo, env=env, check=True, capture_output=True)
     published = dict(line.split("=", 1) for line in output.read_text().splitlines())
     assert published == {"tag": "v1.2.3", "commit": merge}
@@ -176,5 +213,8 @@ def test_publish_workflow_tags_the_verified_merge_when_main_has_advanced(tmp_pat
             env=dict(env, TAG=published["tag"], MERGE_COMMIT=published["commit"]),
             check=True, capture_output=True,
         )
+    subprocess.run(
+        ["bash", "-c", verify], cwd=repo, env=dict(env, QUALIFIED=""), check=True, capture_output=True,
+    )
     assert git("ls-remote", "origin", "refs/heads/main") == f"{main}\trefs/heads/main"
     assert git("ls-remote", "origin", "refs/tags/v1.2.3^{}") == f"{merge}\trefs/tags/v1.2.3^{{}}"

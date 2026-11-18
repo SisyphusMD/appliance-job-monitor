@@ -227,6 +227,16 @@ jobs:
             candidate=$(git rev-parse HEAD)
           fi
 
+          # Updating or rebasing the PR changes its SHA and invalidates this qualification.
+          qualification_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_NUMBER"
+          status=$(jq -n --arg url "$qualification_url" \
+            '{state:"success",context:"Release / Qualified candidate",
+              target_url:$url,description:"Exact release tree qualified"}')
+          curl -fsS --max-time 30 "${auth[@]}" -H 'Content-Type: application/json' \
+            --data "$status" "$api/statuses/$candidate" >/dev/null
+
+          echo "Qualified release commit: $candidate"
+
           pull_issues=$(curl -fsS --max-time 30 "${auth[@]}" --get \
             --data-urlencode 'state=open' --data-urlencode "head=$branch" \
             --data-urlencode 'page=1' --data-urlencode 'limit=50' "$api/pulls")
