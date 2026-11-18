@@ -6,6 +6,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Require the final release PR head to match the commit that passed Prepare Release (#19).
+
 ## [0.1.1] - 2026-11-17
 
 - Prepare stable releases through a changelog PR, then tag the exact merged commit (#14).
