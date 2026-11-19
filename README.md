@@ -24,3 +24,4 @@ Generated nightly from the primary Forgejo; do not edit. `json/` holds the full 
 | 18 | pull | closed | [WIP: Prove required CI checks reject invalid input](items/0018-wip-prove-required-ci-checks-reject-invalid-input.md) |
 | 19 | issue | closed | [Bind release publication to the original qualified commit](items/0019-bind-release-publication-to-the-original-qualified-commit.md) |
 | 20 | pull | closed | [Verify the exact Appliance release candidate before tagging](items/0020-verify-the-exact-appliance-release-candidate-before-tagging.md) |
+| 21 | issue | open | [Default blueprint imports to the latest Forgejo release](items/0021-default-blueprint-imports-to-the-latest-forgejo-release.md) |
