@@ -10,7 +10,8 @@ blueprint:
     The state is kept in a dropdown (`input_select`) helper you create, with the six state
     options listed under State helper.
   domain: automation
-  source_url: https://github.com/SisyphusMD/appliance-job-monitor/releases/latest/download/appliance-job-monitor.yaml
+  source_url:
+    https://forgejo.bryantserver.com/SisyphusMD/appliance-job-monitor/releases/download/latest/appliance-job-monitor.yaml
   homeassistant:
     min_version: 2024.10.0
   input:

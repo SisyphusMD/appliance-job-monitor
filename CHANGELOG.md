@@ -6,6 +6,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- New blueprint imports use the latest published Forgejo release (#21).
+
 - Require the final release PR head to match the commit that passed Prepare Release (#19).
 
 ## [0.1.1] - 2026-11-17

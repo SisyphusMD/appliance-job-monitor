@@ -29,16 +29,20 @@ notification when a job finishes.
 
 ## Install
 
-[![Open your Home Assistant instance and show the blueprint import dialog with this blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FSisyphusMD%2Fappliance-job-monitor%2Freleases%2Flatest%2Fdownload%2Fappliance-job-monitor.yaml)
+[![Open your Home Assistant instance and show the blueprint import dialog with this blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fforgejo.bryantserver.com%2FSisyphusMD%2Fappliance-job-monitor%2Freleases%2Fdownload%2Flatest%2Fappliance-job-monitor.yaml)
 
 Or go to **Settings > Automations & scenes > Blueprints > Import blueprint** and paste:
 
 ```text
-https://github.com/SisyphusMD/appliance-job-monitor/releases/latest/download/appliance-job-monitor.yaml
+https://forgejo.bryantserver.com/SisyphusMD/appliance-job-monitor/releases/download/latest/appliance-job-monitor.yaml
 ```
 
 That link always serves the newest release, so re-importing the blueprint from its menu on the
-Blueprints page updates it. Home Assistant 2024.10 or newer is required.
+Blueprints page updates it. Existing imports can keep using the GitHub mirror. To switch an existing
+import to Forgejo, set `blueprint.source_url` in the installed blueprint YAML to the URL above,
+keep the file in place, reload automations (**Developer tools > YAML > Automations**) so Home
+Assistant forgets the cached GitHub URL, then use **Re-import blueprint**. Existing automations
+keep the same path. Home Assistant 2024.10 or newer is required.
 
 ## Set up an appliance
 
