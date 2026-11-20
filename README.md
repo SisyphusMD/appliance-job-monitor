@@ -24,4 +24,9 @@ Generated nightly from the primary Forgejo; do not edit. `json/` holds the full 
 | 18 | pull | closed | [WIP: Prove required CI checks reject invalid input](items/0018-wip-prove-required-ci-checks-reject-invalid-input.md) |
 | 19 | issue | closed | [Bind release publication to the original qualified commit](items/0019-bind-release-publication-to-the-original-qualified-commit.md) |
 | 20 | pull | closed | [Verify the exact Appliance release candidate before tagging](items/0020-verify-the-exact-appliance-release-candidate-before-tagging.md) |
-| 21 | issue | open | [Default blueprint imports to the latest Forgejo release](items/0021-default-blueprint-imports-to-the-latest-forgejo-release.md) |
+| 21 | issue | closed | [Default blueprint imports to the latest Forgejo release](items/0021-default-blueprint-imports-to-the-latest-forgejo-release.md) |
+| 22 | issue | closed | [AI review: take the 40,000-token output cap and verdict-parse fix from project-rules](items/0022-ai-review-take-the-40-000-token-output-cap-and-verdict-parse.md) |
+| 23 | pull | closed | [AI review: 40,000-token output cap and verdict-parse fix](items/0023-ai-review-40-000-token-output-cap-and-verdict-parse-fix.md) |
+| 24 | issue | closed | [AI review: take the 40-minute deadline and 45-minute job limit from project-rules](items/0024-ai-review-take-the-40-minute-deadline-and-45-minute-job-limi.md) |
+| 25 | pull | closed | [AI review: 40-minute deadline inside a 45-minute job](items/0025-ai-review-40-minute-deadline-inside-a-45-minute-job.md) |
+| 26 | pull | closed | [chore: default blueprint imports to the latest Forgejo release](items/0026-chore-default-blueprint-imports-to-the-latest-forgejo-releas.md) |

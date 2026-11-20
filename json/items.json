@@ -525,7 +525,7 @@
  {
   "assignees": [],
   "body": "Use the primary release asset in the install badge, manual import and blueprint source URL. Preserve re-import of the latest stable release.",
-  "closed_at": null,
+  "closed_at": "2026-11-20T00:17:50-08:00",
   "comments": [
    {
     "body": "The badge, manual URL and blueprint source now agree in the local patch. The latest Forgejo asset matches the bytes of v0.1.1. Both pinned Home Assistant test environments pass all 105 tests and exercise all 60 blueprint branches. The raw public request currently returns HTTP 500. Landing waits for a successful public blueprint import.",
@@ -533,18 +533,168 @@
     "id": 37528,
     "updated_at": "2026-11-18T06:53:21-08:00",
     "user": "cody"
+   },
+   {
+    "body": "Status (2026-11-20, session rotating): the public-route blocker is fixed (bryantserver/k8s#2617, deployed). This repo's forgejo-defaults change (5 files) is still uncommitted in its worktree, 4 commits behind main. It is first of the four forgejo-defaults PRs; the next session picks it up.\n",
+    "created_at": "2026-11-20T00:12:26-08:00",
+    "id": 39583,
+    "updated_at": "2026-11-20T00:12:26-08:00",
+    "user": "cody"
+   },
+   {
+    "body": "Claude (rotated Casa session) has this. Gateway premise cleared by bryantserver/k8s#2617. PR #26 open; cx review findings fixed (reload-automations step, CONTRIBUTING hunk dropped).",
+    "created_at": "2026-11-20T00:15:27-08:00",
+    "id": 39596,
+    "updated_at": "2026-11-20T00:15:27-08:00",
+    "user": "cody"
+   },
+   {
+    "body": "Done: PR #26 merged at 3f1fcc4 (all 10 contexts green on 553fe5c), GitHub and NAS mirrors match, branch and worktree removed. Takes effect for users at the next release; the Forgejo latest alias serves v0.1.1 today.",
+    "created_at": "2026-11-20T00:18:48-08:00",
+    "id": 39625,
+    "updated_at": "2026-11-20T00:18:48-08:00",
+    "user": "cody"
    }
   ],
   "created_at": "2026-11-18T06:33:49-08:00",
   "kind": "issue",
   "labels": [
-   "status:blocked",
+   "status:in-progress",
    "type:chore"
   ],
   "milestone": null,
   "number": 21,
-  "state": "open",
+  "state": "closed",
   "title": "Default blueprint imports to the latest Forgejo release",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "body": "Copy of the canonical script from SisyphusMD/project-rules#105 (issues SisyphusMD/project-rules#103 and #104). The old 16,000-token output cap cut long reviews off before their verdict, and a </think> the model quoted could leak its reasoning ahead of the JSON so the verdict failed to parse. Cody approved the 40,000 cap on 2026-11-19.",
+  "closed_at": "2026-11-19T16:38:53-08:00",
+  "comments": [
+   {
+    "body": "Decision: Admin-merge the AI-review sync PR past its failing AI review check (Cody: \"Yes\"). Why: The required review runs main's old parser, which cannot parse a review of this diff (it quotes </think>); the copy is byte-identical to project-rules main and every other check is green.\n\nDecided by: Cody, 2026-11-19.",
+    "created_at": "2026-11-19T16:36:45-08:00",
+    "id": 38759,
+    "updated_at": "2026-11-19T16:36:45-08:00",
+    "user": "cody"
+   }
+  ],
+  "created_at": "2026-11-19T12:23:33-08:00",
+  "kind": "issue",
+  "labels": [
+   "status:in-progress",
+   "type:bug"
+  ],
+  "milestone": null,
+  "number": 22,
+  "state": "closed",
+  "title": "AI review: take the 40,000-token output cap and verdict-parse fix from project-rules",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Closes #22\n\nByte-identical copy of `.forgejo/scripts/ai-review.py` from SisyphusMD/project-rules#105 (tests live there):\n- the model output cap goes from 16,000 to 40,000 tokens (`MAX_OUTPUT_TOKENS` overrides it), since hidden reasoning alone ran past 16,000 on long reviews;\n- a cut-off answer fails closed with a status that says to split the PR or raise the cap, and every run logs token usage;\n- a `</think>` the model quotes no longer leaks its reasoning ahead of the verdict and breaks the parse.",
+  "closed_at": "2026-11-19T16:38:53-08:00",
+  "comments": [],
+  "created_at": "2026-11-19T12:26:23-08:00",
+  "head": "refs/pull/23/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "483c7d3662ddf0616854644041da96779f392dbd",
+  "merged": true,
+  "milestone": null,
+  "number": 23,
+  "reviews": [],
+  "state": "closed",
+  "title": "AI review: 40,000-token output cap and verdict-parse fix",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "body": "Copy of the canonical AI review from SisyphusMD/project-rules#108 (issue SisyphusMD/project-rules#55). Reviews at the 40,000-token cap could outlast the 20-minute job, which was then killed with the required check left pending. Now a 40-minute deadline ends the review with an error status, inside a 45-minute job. Cody approved the 45-minute limit on 2026-11-19.",
+  "closed_at": "2026-11-19T18:16:50-08:00",
+  "comments": [],
+  "created_at": "2026-11-19T17:41:08-08:00",
+  "kind": "issue",
+  "labels": [
+   "status:in-progress",
+   "type:bug"
+  ],
+  "milestone": null,
+  "number": 24,
+  "state": "closed",
+  "title": "AI review: take the 40-minute deadline and 45-minute job limit from project-rules",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Closes #24\n\nSync from SisyphusMD/project-rules#108 (byte-identical copies of the script and workflow; tests live there). A 40-minute deadline from the review's start ends a slow review with an error status instead of the job being killed at 20 minutes with the required check left pending. The job limit is now 45 minutes.",
+  "closed_at": "2026-11-19T18:16:50-08:00",
+  "comments": [
+   {
+    "body": "Retry: the review errored reaching the model (HTTPError) while 12 reviews were queued on the Studio.",
+    "created_at": "2026-11-19T18:10:04-08:00",
+    "id": 39252,
+    "updated_at": "2026-11-19T18:10:04-08:00",
+    "user": "cody"
+   },
+   {
+    "body": "Retry: second URLError reaching the model while the Studio queue drained.",
+    "created_at": "2026-11-19T18:13:28-08:00",
+    "id": 39280,
+    "updated_at": "2026-11-19T18:13:28-08:00",
+    "user": "cody"
+   },
+   {
+    "body": "<!-- ai-review -->\n**AI review** of `bd39066ba0`: Clean sync of the AI review script and workflow from project-rules#108: adds a 40-minute signal-based deadline inside a 45-minute job so the required check always gets a terminal status instead of staying pending when the job is killed. Error handling is restructured to a catch-all that guarantees a status write; signal handling is correct (alarm cancelled in finally before any status write, Deadline not an OSError so urllib won't wrap it).\n\nNo findings.\n\nDisagree? Reply on this PR with your reasoning; the reviewer re-reads every reply.\n<!-- ai-review-state W10= -->",
+    "created_at": "2026-11-19T18:14:22-08:00",
+    "id": 39284,
+    "updated_at": "2026-11-19T18:14:22-08:00",
+    "user": "forgejo-actions"
+   }
+  ],
+  "created_at": "2026-11-19T17:41:10-08:00",
+  "head": "refs/pull/25/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "8c4e9a47dc160ff5539ff5da6d666a34cdac5cdb",
+  "merged": true,
+  "milestone": null,
+  "number": 25,
+  "reviews": [],
+  "state": "closed",
+  "title": "AI review: 40-minute deadline inside a 45-minute job",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Closes #21\n\nNew installs, the import badge and the blueprint `source_url` now point at the Forgejo latest release alias, which serves v0.1.1 byte-for-byte. Existing GitHub imports keep working; the README explains how to switch one (edit `source_url`, reload automations so HA drops the cached URL, re-import). A metadata test pins the URL in the blueprint and both README spots.\n\nChecks: Ruff, yamllint and diff check locally; both pinned HA suites passed before the rebase onto main (main only changed AI review scripts). Cold review (cx) findings fixed: reload step added, unrelated CONTRIBUTING link dropped.",
+  "closed_at": "2026-11-20T00:17:49-08:00",
+  "comments": [
+   {
+    "body": "<!-- ai-review -->\n**AI review** of `553fe5ca59`: Clean, focused PR that switches blueprint import URLs from the GitHub mirror to the Forgejo latest-release alias, updates the README with migration instructions for existing imports, and adds a metadata test pinning the URL in the blueprint and both README locations. All changes serve issue #21; the test would fail without the fix; no issues found.\n\nNo findings.\n\nDisagree? Reply on this PR with your reasoning; the reviewer re-reads every reply.\n<!-- ai-review-state W10= -->",
+    "created_at": "2026-11-20T00:16:54-08:00",
+    "id": 39603,
+    "updated_at": "2026-11-20T00:16:54-08:00",
+    "user": "forgejo-actions"
+   }
+  ],
+  "created_at": "2026-11-20T00:15:20-08:00",
+  "head": "refs/pull/26/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "3f1fcc4de288546434d8cb2c92128241e9f21d24",
+  "merged": true,
+  "milestone": null,
+  "number": 26,
+  "reviews": [],
+  "state": "closed",
+  "title": "chore: default blueprint imports to the latest Forgejo release",
   "user": "cody"
  }
 ]
