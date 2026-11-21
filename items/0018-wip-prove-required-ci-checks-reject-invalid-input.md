@@ -2,7 +2,7 @@
 
 - Kind: pull, state: closed, by cody, created 2026-11-17T16:29:29-08:00
 - Labels: none; milestone: none
-- proof/required-check-failures -> main, merged: False
+- refs/pull/18/head -> main, merged: False
 
 Disposable hosted failure proof. The issue link is omitted from this description to test the issue-link gate. Close this draft after recording CI. This fixture must never be merged.
 
