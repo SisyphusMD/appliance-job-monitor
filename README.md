@@ -30,3 +30,7 @@ Generated nightly from the primary Forgejo; do not edit. `json/` holds the full 
 | 24 | issue | closed | [AI review: take the 40-minute deadline and 45-minute job limit from project-rules](items/0024-ai-review-take-the-40-minute-deadline-and-45-minute-job-limi.md) |
 | 25 | pull | closed | [AI review: 40-minute deadline inside a 45-minute job](items/0025-ai-review-40-minute-deadline-inside-a-45-minute-job.md) |
 | 26 | pull | closed | [chore: default blueprint imports to the latest Forgejo release](items/0026-chore-default-blueprint-imports-to-the-latest-forgejo-releas.md) |
+| 27 | issue | closed | [AI review runs on any signed-in user's PR comment](items/0027-ai-review-runs-on-any-signed-in-user-s-pr-comment.md) |
+| 28 | pull | closed | [fix(ai-review): start a review from a PR comment only for pushers and the PR author](items/0028-fix-ai-review-start-a-review-from-a-pr-comment-only-for-push.md) |
+| 29 | issue | closed | [chore(ci): bring the AI review copy up to canonical project-rules 64b857c](items/0029-chore-ci-bring-the-ai-review-copy-up-to-canonical-project-ru.md) |
+| 30 | pull | closed | [chore(ci): copy the AI review from project-rules 64b857c](items/0030-chore-ci-copy-the-ai-review-from-project-rules-64b857c.md) |
