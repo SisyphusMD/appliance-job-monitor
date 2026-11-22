@@ -6,6 +6,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Bring the AI review copy up to project-rules 64b857c (connect retry, malformed-answer re-ask, pinned checkout) (#29).
 - New blueprint imports use the latest published Forgejo release (#21).
 
 - Require the final release PR head to match the commit that passed Prepare Release (#19).
