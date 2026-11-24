@@ -807,5 +807,56 @@
   "state": "closed",
   "title": "chore(ci): copy the AI review from project-rules 64b857c",
   "user": "cody"
+ },
+ {
+  "assignees": [],
+  "body": "Copy the AI review script from canonical SisyphusMD/project-rules 72f8fcc (SisyphusMD/project-rules#121, PR #122). An answer cut off at the output cap while still reasoning is asked once more under the answer schema, instead of failing the check. Before this, a small PR could spend the whole cap reasoning on every run and never get a review (seen on bryantserver/k8s#2688). The script will be byte-for-byte canonical, and ai-review.yml stays unchanged. Rollout tracked on SisyphusMD/project-rules#113. Cody approved the rollout on 2026-11-23.",
+  "closed_at": "2026-11-23T21:59:59-08:00",
+  "comments": [
+   {
+    "body": "Done: PR 32 merged at ad972350 and verified on main. ai-review.py is byte-for-byte canonical project-rules 72f8fcc, and ai-review.yml is unchanged. Its own AI review passed. Nothing left.",
+    "created_at": "2026-11-23T22:05:16-08:00",
+    "id": 44357,
+    "updated_at": "2026-11-23T22:05:16-08:00",
+    "user": "cody"
+   }
+  ],
+  "created_at": "2026-11-23T21:03:34-08:00",
+  "kind": "issue",
+  "labels": [
+   "type:chore"
+  ],
+  "milestone": null,
+  "number": 31,
+  "state": "closed",
+  "title": "chore(ci): bring the AI review copy up to project-rules 72f8fcc",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Closes #31\n\nCopies .forgejo/scripts/ai-review.py byte-for-byte from canonical SisyphusMD/project-rules 72f8fcc (SisyphusMD/project-rules#121, PR 122). Before this, a review whose answer was cut off at the output cap while still reasoning failed the check. Now it is asked once more under the answer schema. A cut-off mid-answer still fails closed. ai-review.yml is unchanged. Rollout tracked on SisyphusMD/project-rules#113.",
+  "closed_at": "2026-11-23T21:59:59-08:00",
+  "comments": [
+   {
+    "body": "<!-- ai-review -->\n**AI review** of `830b85883f`: The PR is a byte-for-byte copy of the canonical ai-review.py from project-rules 72f8fcc, adding a ReasoningCutOff class to retry when the model is cut off before producing any answer text. The logic is correct: mid-verdict cut-offs still fail closed, reasoning-only cut-offs get one retry under the schema, and the second failure still fails closed. No blocking issues found.\n\nNo findings.\n(The model's first answer was rejected (no JSON object in the model's answer); this is its second, with any finding the first had that it left out.)\n\n\nDisagree? Reply on this PR with your reasoning; the reviewer re-reads every reply.\n<!-- ai-review-state W10= -->",
+    "created_at": "2026-11-23T21:33:57-08:00",
+    "id": 44274,
+    "updated_at": "2026-11-23T21:33:57-08:00",
+    "user": "forgejo-actions"
+   }
+  ],
+  "created_at": "2026-11-23T21:31:26-08:00",
+  "head": "refs/pull/32/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "ad972350fea53f59a96181465b1ee098b0c4f52c",
+  "merged": true,
+  "milestone": null,
+  "number": 32,
+  "reviews": [],
+  "state": "closed",
+  "title": "chore(ci): bring the AI review copy up to project-rules 72f8fcc",
+  "user": "cody"
  }
 ]
