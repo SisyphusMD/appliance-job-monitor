@@ -858,5 +858,57 @@
   "state": "closed",
   "title": "chore(ci): bring the AI review copy up to project-rules 72f8fcc",
   "user": "cody"
+ },
+ {
+  "assignees": [],
+  "body": "Decided on SisyphusMD/project-rules#78 (2026-11-24): every repo runs the gate scripts, and the AI review reads the rules, from project-rules main instead of its own copies. Switch `ci.yml` and `ai-review.yml` to canonical (project-rules af7417d1; this also brings in the canonical commenter gate where it was missing), and remove the four gate script copies and `.forgejo/RULES.md` in the same change. Where present, copy `mirror-lockdown.yml` again for its source header. issue-archive.py stays a copy.",
+  "closed_at": "2026-11-24T19:18:40-08:00",
+  "comments": [
+   {
+    "body": "Landed in #34 (edd56990). The next PR is the first run of the fetched scripts.",
+    "created_at": "2026-11-24T19:19:48-08:00",
+    "id": 46150,
+    "updated_at": "2026-11-24T19:19:48-08:00",
+    "user": "cody"
+   }
+  ],
+  "created_at": "2026-11-24T19:05:47-08:00",
+  "kind": "issue",
+  "labels": [
+   "status:in-progress",
+   "type:chore"
+  ],
+  "milestone": null,
+  "number": 33,
+  "state": "closed",
+  "title": "Run the gate scripts and rules from project-rules main",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Closes #33\n\nThis repo ran its own copies of the gate scripts and kept a copy of the rules for the AI review, and copies drift. `ci.yml` and `ai-review.yml` now fetch the scripts and `RULES.md` from project-rules main on every run and fail when they cannot (SisyphusMD/project-rules#78). The gate jobs and `ai-review.yml` are project-rules main's (6a6d41b4), and the copies are removed in the same change, so no run is left without either.\n\nmirror-lockdown.yml is copied again for its source header.\n\nLarge diff: 889 of the removed lines are the deleted copies, and the added workflow lines come from project-rules main, where they were reviewed and tested.\n",
+  "closed_at": "2026-11-24T19:18:40-08:00",
+  "comments": [
+   {
+    "body": "<!-- ai-review -->\n**AI review** of `db852b6c5d`: The PR correctly switches ci.yml and ai-review.yml to fetch gate scripts and rules from project-rules main, removes the four local script copies and .forgejo/RULES.md, adds the source header to mirror-lockdown.yml, and records the change in the CHANGELOG. The workflow changes are sound: the gate fetch fails closed, the new 'Hold the check' step prevents stale statuses, and the checkout/SHA handling for git-diff-based scripts is preserved. The Large diff justification is valid (889 deleted lines are the removed copies).\n\nNo findings.\n\nDisagree? Reply on this PR with your reasoning; the reviewer re-reads every reply.\n<!-- ai-review-state W10= -->",
+    "created_at": "2026-11-24T19:15:42-08:00",
+    "id": 46094,
+    "updated_at": "2026-11-24T19:15:42-08:00",
+    "user": "forgejo-actions"
+   }
+  ],
+  "created_at": "2026-11-24T19:11:33-08:00",
+  "head": "refs/pull/34/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "edd5699057e05a1bcae9cff66b0bf327ea50b46f",
+  "merged": true,
+  "milestone": null,
+  "number": 34,
+  "reviews": [],
+  "state": "closed",
+  "title": "chore(gate): run the gate scripts and rules from project-rules main",
+  "user": "cody"
  }
 ]
