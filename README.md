@@ -40,3 +40,4 @@ Generated nightly from the primary Forgejo; do not edit. `json/` holds the full 
 | 34 | pull | closed | [chore(gate): run the gate scripts and rules from project-rules main](items/0034-chore-gate-run-the-gate-scripts-and-rules-from-project-rules.md) |
 | 35 | issue | closed | [Call the shared gate and AI review workflows instead of copying them](items/0035-call-the-shared-gate-and-ai-review-workflows-instead-of-copy.md) |
 | 36 | pull | closed | [chore(gate): call the shared gate and AI review workflows](items/0036-chore-gate-call-the-shared-gate-and-ai-review-workflows.md) |
+| 37 | pull | closed | [ci: map PROJECT_RULES_TOKEN into the shared jobs](items/0037-ci-map-project-rules-token-into-the-shared-jobs.md) |

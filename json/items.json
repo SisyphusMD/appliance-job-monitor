@@ -962,5 +962,32 @@
   "state": "closed",
   "title": "chore(gate): call the shared gate and AI review workflows",
   "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Refs SisyphusMD/project-rules#143\n\nTrigger: the shared Lint, Secrets and AI review jobs are about to read the owner's private `.project-rules` manifest with the owner's read-only Actions secret `PROJECT_RULES_TOKEN`, and a called workflow sees only the secrets its caller maps in. This maps it, as the canonical callers in SisyphusMD/project-rules do. Until SisyphusMD/project-rules#140 merges the jobs ignore it, so nothing changes yet.\n\nNo tests: caller wiring only; the next PR after SisyphusMD/project-rules#140 merges proves it, since its Lint, Secrets and AI review checks read the manifest with this token.\n",
+  "closed_at": "2026-11-26T21:41:10-08:00",
+  "comments": [
+   {
+    "body": "<!-- ai-review -->\n**AI review** of `4afb57bbce`: Clean, minimal PR that maps PROJECT_RULES_TOKEN into the shared-lint and shared-review called workflows, exactly as step 2 of project-rules#143 prescribes. The diff is small, scoped to one concern, the CHANGELOG is updated, and the 'No tests' justification (caller wiring verified by the next PR after #140 merges) is reasonable for workflow secret plumbing.\n\nNo findings.\n\nDisagree? Reply on this PR with your reasoning; the reviewer re-reads every reply.\n<!-- ai-review-state W10= -->",
+    "created_at": "2026-11-26T21:18:18-08:00",
+    "id": 49188,
+    "updated_at": "2026-11-26T21:18:18-08:00",
+    "user": "forgejo-actions"
+   }
+  ],
+  "created_at": "2026-11-26T21:11:18-08:00",
+  "head": "refs/pull/37/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "4f3cdc81c5d5b8e268f516e343e743ce21a9d3d5",
+  "merged": true,
+  "milestone": null,
+  "number": 37,
+  "reviews": [],
+  "state": "closed",
+  "title": "ci: map PROJECT_RULES_TOKEN into the shared jobs",
+  "user": "cody"
  }
 ]
