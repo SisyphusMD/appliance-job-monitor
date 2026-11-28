@@ -989,5 +989,57 @@
   "state": "closed",
   "title": "ci: map PROJECT_RULES_TOKEN into the shared jobs",
   "user": "cody"
+ },
+ {
+  "assignees": [],
+  "body": "project-rules now runs the issue-archive job from its main (SisyphusMD/project-rules#144). Replace this repo's .forgejo/workflows/issue-archive.yml with the new caller and delete .forgejo/scripts/issue-archive.py, which no longer runs and fell behind main.",
+  "closed_at": "2026-11-27T08:02:54-08:00",
+  "comments": [
+   {
+    "body": "Done: #39 merged and verified on main. Branch removed.",
+    "created_at": "2026-11-27T08:08:29-08:00",
+    "id": 50135,
+    "updated_at": "2026-11-27T08:08:29-08:00",
+    "user": "cody"
+   }
+  ],
+  "created_at": "2026-11-27T07:11:13-08:00",
+  "kind": "issue",
+  "labels": [
+   "status:in-progress",
+   "type:chore"
+  ],
+  "milestone": null,
+  "number": 38,
+  "state": "closed",
+  "title": "Call project-rules' shared issue-archive workflow",
+  "user": "cody"
+ },
+ {
+  "assignees": [],
+  "base": "main",
+  "body": "Replaces the copied issue-archive job with the caller from project-rules main and deletes the copied script, which no longer runs.\n\nCloses #38\n",
+  "closed_at": "2026-11-27T08:02:53-08:00",
+  "comments": [
+   {
+    "body": "<!-- ai-review -->\n**AI review** of `4aa0326786`: Clean, focused change that replaces the copied issue-archive job with a caller to project-rules' shared workflow, deletes the now-unused script, preserves schedule/concurrency/secrets, and adds a CHANGELOG entry. No issues found.\n\nNo findings.\n\nDisagree? Reply on this PR with your reasoning; the reviewer re-reads every reply.\n<!-- ai-review-state W10= -->",
+    "created_at": "2026-11-27T07:15:40-08:00",
+    "id": 50008,
+    "updated_at": "2026-11-27T07:15:40-08:00",
+    "user": "forgejo-actions"
+   }
+  ],
+  "created_at": "2026-11-27T07:11:14-08:00",
+  "head": "refs/pull/39/head",
+  "kind": "pull",
+  "labels": [],
+  "merge_commit_sha": "57b211cb2b31e7c8fdf0e1cfb6a5356214bb29b5",
+  "merged": true,
+  "milestone": null,
+  "number": 39,
+  "reviews": [],
+  "state": "closed",
+  "title": "chore(ci): call the shared issue-archive workflow",
+  "user": "cody"
  }
 ]

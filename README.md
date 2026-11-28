@@ -41,3 +41,5 @@ Generated nightly from the primary Forgejo; do not edit. `json/` holds the full 
 | 35 | issue | closed | [Call the shared gate and AI review workflows instead of copying them](items/0035-call-the-shared-gate-and-ai-review-workflows-instead-of-copy.md) |
 | 36 | pull | closed | [chore(gate): call the shared gate and AI review workflows](items/0036-chore-gate-call-the-shared-gate-and-ai-review-workflows.md) |
 | 37 | pull | closed | [ci: map PROJECT_RULES_TOKEN into the shared jobs](items/0037-ci-map-project-rules-token-into-the-shared-jobs.md) |
+| 38 | issue | closed | [Call project-rules' shared issue-archive workflow](items/0038-call-project-rules-shared-issue-archive-workflow.md) |
+| 39 | pull | closed | [chore(ci): call the shared issue-archive workflow](items/0039-chore-ci-call-the-shared-issue-archive-workflow.md) |
